@@ -67,22 +67,32 @@ function resolveCollision(obj1, obj2, angle, dist) {
   separate(obj1, obj2, angle, dist);
 
   let unitVector = [Math.cos(angle), Math.sin(angle)];
-  const vector1 = vectorProjection([obj1.vx, obj1.vy], unitVector);
-  const vector2 = vectorProjection([obj2.vx, obj2.vy], unitVector);
+  const vector1X = vectorProjection([obj1.vx, obj1.vy], unitVector);
+  const vector1Y = [obj1.vx - vector1X[0], obj1.vy - vector1X[1]];
+  const vector2X = vectorProjection([obj2.vx, obj2.vy], unitVector);
+  const vector2Y = [obj2.vx - vector2X[0], obj2.vy - vector2X[1]];
 
   const C = 1;
-  const totalMomentum = obj1.mass * vector1[0] + obj2.mass * vector2[0];
+  const totalMomentum = obj1.mass * vector1X[0] + obj2.mass * vector2X[0];
   const totalMass = obj1.mass + obj2.mass;
 
-  const v1 = (C * obj2.mass * (vector2[0] - vector1[0]) + totalMomentum) / totalMass;
-  const v2 = (C * obj1.mass * (vector1[0] - vector2[0]) + totalMomentum) / totalMass;
+  const magnitude1 = (C * obj2.mass * (vector2X[0] - vector1X[0]) + totalMomentum) / totalMass;
+  const magnitude2 = (C * obj1.mass * (vector1X[0] - vector2X[0]) + totalMomentum) / totalMass;
 
-  const newVector1 = [v1, vector1[1]];
-  const newVector2 = [v2, vector2[1]];
+  const newVector1X = setMagnitude(vector1X, magnitude1);
+  const newVector2X = setMagnitude(vector2X, magnitude2);
 
-  unitVector = [1, 0];
-  [obj1.vx, obj1.vy] = vectorProjection(newVector1, unitVector);
-  [obj2.vx, obj2.vy] = vectorProjection(newVector2, unitVector);
+  obj1.vx = newVector1X[0] + vector1Y[0];
+  obj1.vy = newVector1X[1] + vector1Y[1];
+  obj2.vx = newVector2X[0] + vector2Y[0];
+  obj2.vy = newVector2X[1] + vector2Y[1];
+
+  // all terrible
+}
+
+function setMagnitude(vector, magnitude) {
+  const length = Math.sqrt(vector[0] ** 2 + vector[1] ** 2);
+  return [(vector[0] / length) * magnitude, (vector[1] / length) * magnitude];
 }
 
 function vectorProjection(a, b) {
@@ -92,7 +102,7 @@ function vectorProjection(a, b) {
 
 function separate(obj1, obj2, angle, dist) {
   let overlap = obj1.r + obj2.r - dist;
-  overlap *= obj1.x > obj2.x ? 1 : 1;
+  overlap *= obj1.x > obj2.x ? 1 : -1;
 
   const vector = { x: overlap * Math.cos(angle), y: overlap * Math.sin(angle) };
 

@@ -8,8 +8,8 @@ class Atom {
   constructor(x, y, r, mass, color) {
     this.x = x;
     this.y = y;
-    this.vx = 0;
-    this.vy = 0;
+    this.vx = 10;
+    this.vy = 10;
     this.r = r;
     this.mass = mass;
     this.color = color;
@@ -23,10 +23,10 @@ class Atom {
       const force = LJForce(dist, 10, 100);
       const components = decomposeForce(angle, force);
 
-      this.vx += components.x / this.mass;
-      this.vy += components.y / this.mass;
-      this.vx *= 0.9999;
-      this.vy *= 0.9999;
+      // this.vx += components.x / this.mass;
+      // this.vy += components.y / this.mass;
+
+      if (dist <= this.r + atom.r) resolveCollision(this, atom, angle, dist);
     }
 
     this.x += this.vx;
@@ -59,8 +59,48 @@ class Atom {
 
 let atoms = [];
 
-for (let n = 0; n < 20; n++) {
+for (let n = 0; n < 2; n++) {
   atoms.push(new Atom((n % 5) * 150 + 20, Math.floor(n / 5) * 150 + 20, 20, 1, `hsl(${n * 50}, 50, 50)`));
+}
+
+function resolveCollision(obj1, obj2, angle, dist) {
+  separate(obj1, obj2, angle, dist);
+
+  let unitVector = [Math.cos(angle), Math.sin(angle)];
+  const vector1 = vectorProjection([obj1.vx, obj1.vy], unitVector);
+  const vector2 = vectorProjection([obj2.vx, obj2.vy], unitVector);
+
+  const C = 1;
+  const totalMomentum = obj1.mass * vector1[0] + obj2.mass * vector2[0];
+  const totalMass = obj1.mass + obj2.mass;
+
+  const v1 = (C * obj2.mass * (vector2[0] - vector1[0]) + totalMomentum) / totalMass;
+  const v2 = (C * obj1.mass * (vector1[0] - vector2[0]) + totalMomentum) / totalMass;
+
+  const newVector1 = [v1, vector1[1]];
+  const newVector2 = [v2, vector2[1]];
+
+  unitVector = [1, 0];
+  [obj1.vx, obj1.vy] = vectorProjection(newVector1, unitVector);
+  [obj2.vx, obj2.vy] = vectorProjection(newVector2, unitVector);
+}
+
+function vectorProjection(a, b) {
+  const dotProduct = a[0] * b[0] + a[1] * b[1];
+  return [dotProduct * b[0], dotProduct * b[1]];
+}
+
+function separate(obj1, obj2, angle, dist) {
+  let overlap = obj1.r + obj2.r - dist;
+  overlap *= obj1.x > obj2.x ? 1 : 1;
+
+  const vector = { x: overlap * Math.cos(angle), y: overlap * Math.sin(angle) };
+
+  obj1.x += vector.x;
+  obj1.y += vector.y;
+
+  obj2.x -= vector.x;
+  obj2.y -= vector.y;
 }
 
 function calcAngle(obj1, obj2) {
@@ -76,7 +116,8 @@ function decomposeForce(angle, magnitude) {
 }
 
 function LJForce(distance, dispersion, size) {
-  return Math.min(24 * dispersion * ((2 * size ** 12) / distance ** 13 - size ** 6 / distance ** 7));
+  if (distance < 100) return 0;
+  return 24 * dispersion * ((2 * size ** 12) / distance ** 13 - size ** 6 / distance ** 7);
 }
 
 function draw() {

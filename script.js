@@ -1,15 +1,15 @@
 let cnv = document.getElementById('canvas');
 let ctx = cnv.getContext('2d');
 
-cnv.width = 800;
-cnv.height = 800;
+cnv.width = 300;
+cnv.height = 600;
 
 class Atom {
-  constructor(x, y, r, mass, color) {
+  constructor(x, y, vx, vy, r, mass, color) {
     this.x = x;
     this.y = y;
-    this.vx = 10;
-    this.vy = 10;
+    this.vx = vx;
+    this.vy = vy;
     this.r = r;
     this.mass = mass;
     this.color = color;
@@ -23,11 +23,11 @@ class Atom {
       const force = LJForce(dist, 10, 100);
       const components = decomposeForce(angle, force);
 
-      // this.vx += components.x / this.mass;
-      // this.vy += components.y / this.mass;
+      //this.vx += components.x / this.mass;
+      //this.vy += components.y / this.mass;
 
-      if (dist <= this.r + atom.r) resolveCollision(this, atom, angle, dist);
-    }
+      if (dist < this.r + atom.r) resolveCollision(this, atom, angle, dist);
+    } 
 
     this.x += this.vx;
     this.y += this.vy;
@@ -57,52 +57,46 @@ class Atom {
   }
 }
 
-let atoms = [];
+let atom1 = new Atom(90, 100, 5, 5, 20, 1, "black");
+let atom2 = new Atom(100, 300, 5, -5, 20, 1, "black");
 
-for (let n = 0; n < 2; n++) {
-  atoms.push(new Atom((n % 5) * 150 + 20, Math.floor(n / 5) * 150 + 20, 20, 1, `hsl(${n * 50}, 50, 50)`));
-}
+let atoms = [atom1, atom2];
+
+//for (let n = 0; n < 3; n++) {
+//  atoms.push(new Atom((n % 5) * 150 + 20, Math.floor(n) * 150 + 20, 20, 1, `hsl(${n * 50}, 50, 50)`));
+//}
 
 function resolveCollision(obj1, obj2, angle, dist) {
+  const m1 = obj1.mass;
+  const m2 = obj2.mass;
+  const x1 = [obj1.x, obj1.y];
+  const x2 = [obj2.x, obj2.y];
+  const v1 = [obj1.vx, obj1.vy];
+  const v2 = [obj2.vx, obj2.vy];
+  
+  const v1New = collisionVelocities(m1, m2, x1, x2, v1, v2);
+  const v2New = collisionVelocities(m2, m1, x2, x1, v2, v1);
+  
+  [obj1.vx, obj1.vy] = v1New;
+  [obj2.vx, obj2.vy] = v2New;
+  
   separate(obj1, obj2, angle, dist);
-
-  let unitVector = [Math.cos(angle), Math.sin(angle)];
-  const vector1X = vectorProjection([obj1.vx, obj1.vy], unitVector);
-  const vector1Y = [obj1.vx - vector1X[0], obj1.vy - vector1X[1]];
-  const vector2X = vectorProjection([obj2.vx, obj2.vy], unitVector);
-  const vector2Y = [obj2.vx - vector2X[0], obj2.vy - vector2X[1]];
-
-  const C = 1;
-  const totalMomentum = obj1.mass * vector1X[0] + obj2.mass * vector2X[0];
-  const totalMass = obj1.mass + obj2.mass;
-
-  const magnitude1 = (C * obj2.mass * (vector2X[0] - vector1X[0]) + totalMomentum) / totalMass;
-  const magnitude2 = (C * obj1.mass * (vector1X[0] - vector2X[0]) + totalMomentum) / totalMass;
-
-  const newVector1X = setMagnitude(vector1X, magnitude1);
-  const newVector2X = setMagnitude(vector2X, magnitude2);
-
-  obj1.vx = newVector1X[0] + vector1Y[0];
-  obj1.vy = newVector1X[1] + vector1Y[1];
-  obj2.vx = newVector2X[0] + vector2Y[0];
-  obj2.vy = newVector2X[1] + vector2Y[1];
-
-  // all terrible
 }
 
-function setMagnitude(vector, magnitude) {
-  const length = Math.sqrt(vector[0] ** 2 + vector[1] ** 2);
-  return [(vector[0] / length) * magnitude, (vector[1] / length) * magnitude];
-}
+function collisionVelocities(m1, m2, x1, x2, v1, v2) {
+  let diffX = [x1[0] - x2[0], x1[1] - x2[1]];
+  let diffV = [v1[0] - v2[0], v1[1] - v2[1]];
 
-function vectorProjection(a, b) {
-  const dotProduct = a[0] * b[0] + a[1] * b[1];
-  return [dotProduct * b[0], dotProduct * b[1]];
+  let dotProduct = diffV[0] * diffX[0] + diffV[1] * diffX[1];
+  let normSquared = diffX[0] ** 2 + diffX[1] ** 2;
+  let scalar = (2 * m2 / (m1 + m2)) * (dotProduct / normSquared);
+    
+  return [v1[0] - scalar * diffX[0], v1[1] - scalar * diffX[1]];
 }
 
 function separate(obj1, obj2, angle, dist) {
   let overlap = obj1.r + obj2.r - dist;
-  overlap *= obj1.x > obj2.x ? 1 : -1;
+  overlap *= Math.sign(Math.cos(angle));
 
   const vector = { x: overlap * Math.cos(angle), y: overlap * Math.sin(angle) };
 

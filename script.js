@@ -1,9 +1,10 @@
-let cnv = document.getElementById('canvas');
-let ctx = cnv.getContext('2d');
+let cnv = document.getElementById("canvas");
+let ctx = cnv.getContext("2d");
 
 cnv.width = window.innerWidth - 22;
 cnv.height = window.innerHeight - 22;
 
+let kineticEnergyDisplay = document.getElementById("ke");
 class Atom {
   constructor(x, y, r, speed, mass, color) {
     this.x = x;
@@ -30,7 +31,7 @@ class Atom {
         dist = this.r + atom.r;
       }
 
-      const force = LJForce(dist, 0.5, 22);
+      const force = LJForce(dist, 0.1, 22);
       const components = decomposeForce(angle, force);
 
       this.vx += components.x / this.mass;
@@ -66,7 +67,7 @@ class Mouse {
   constructor() {
     this.x = 0;
     this.y = 0;
-    this.state = 'up';
+    this.state = "up";
   }
 
   update(event) {
@@ -85,7 +86,20 @@ class Container {
   }
 
   update() {
-    if (mouse.state === 'up') {
+    for (let i = 0; i < this.pos.length; i++) {
+      const mousePos = i < 2 ? mouse.x : mouse.y;
+      const dist = Math.abs(mousePos - this.pos[i]);
+      if (dist > this.clickDist) {
+        canvas.style.cursor = "default";
+        continue;
+      }
+      canvas.style.cursor = "n-resize";
+      if (mouse.state != "click") continue;
+      this.drag[Math.floor(i / 2)] = i;
+    }
+
+    if (mouse.state === "up") {
+      this.velocity = [0, 0, 0, 0];
       this.drag = [null, null];
       return;
     }
@@ -101,19 +115,10 @@ class Container {
       this.velocity[index] = mouse.y - this.pos[index];
       this.pos[index] = mouse.y;
     }
-
-    if (mouse.state != 'click') return;
-
-    for (let i = 0; i < this.pos.length; i++) {
-      const mousePos = i < 2 ? mouse.x : mouse.y;
-      const dist = Math.abs(mousePos - this.pos[i]);
-      if (dist > this.clickDist) continue;
-      this.drag[Math.floor(i / 2)] = i;
-    }
   }
 
   draw() {
-    ctx.strokeStyle = 'black';
+    ctx.strokeStyle = "black";
     ctx.strokeRect(this.pos[0], this.pos[2], this.pos[1] - this.pos[0], this.pos[3] - this.pos[2]);
   }
 }
@@ -122,23 +127,23 @@ let atoms = [];
 let mouse = new Mouse();
 let container = new Container([0, cnv.width, 0, cnv.height]);
 
-const atomNum = 200;
+const atomNum = 500;
 for (let n = 0; n < atomNum; n++) {
   const colorStep = 360 / atomNum;
   const color = `rgb(${n * colorStep}, ${360 - n * colorStep}, ${360 - n * colorStep})`;
   atoms.push(new Atom((n % 15) * 20 + 20, Math.floor(n / 15) * 20 + 20, 10, 1, 1, color));
 }
 
-document.addEventListener('mousemove', (event) => {
+document.addEventListener("mousemove", (event) => {
   mouse.update(event);
 });
 
-document.addEventListener('mousedown', () => {
-  mouse.state = 'click';
+document.addEventListener("mousedown", () => {
+  mouse.state = "click";
 });
 
-document.addEventListener('mouseup', () => {
-  mouse.state = 'up';
+document.addEventListener("mouseup", () => {
+  mouse.state = "up";
 });
 
 function resolveCollision(obj1, obj2, angle, dist) {
@@ -161,14 +166,15 @@ function resolveCollision(obj1, obj2, angle, dist) {
 function collisionVelocities(m1, m2, x1, x2, v1, v2) {
   const C = 0.8;
 
-  let diffX = [x1[0] - x2[0], x1[1] - x2[1]];
-  let diffV = [v1[0] - v2[0], v1[1] - v2[1]];
+  const diffX = [x1[0] - x2[0], x1[1] - x2[1]];
+  const diffV = [v1[0] - v2[0], v1[1] - v2[1]];
 
-  let dotProduct = diffV[0] * diffX[0] + diffV[1] * diffX[1];
-  let normSquared = diffX[0] ** 2 + diffX[1] ** 2;
-  let scalar = ((C * 2 * m2) / (m1 + m2)) * (dotProduct / normSquared);
+  const dotProduct = diffV[0] * diffX[0] + diffV[1] * diffX[1];
+  const normSquared = diffX[0] ** 2 + diffX[1] ** 2;
+  const scalar = (C * 2 * m2) / (m1 + m2);
+  const coefficient = normSquared === 0 ? 0 : scalar * (dotProduct / normSquared);
 
-  return [v1[0] - scalar * diffX[0], v1[1] - scalar * diffX[1]];
+  return [v1[0] - coefficient * diffX[0], v1[1] - coefficient * diffX[1]];
 }
 
 function separate(obj1, obj2, angle, dist) {
@@ -196,6 +202,10 @@ function LJForce(distance, dispersion, size) {
   return 24 * dispersion * ((2 * size ** 12) / distance ** 13 - size ** 6 / distance ** 7);
 }
 
+function kineticEnergy(mass, velocity) {
+  return (mass * velocity ** 2) / 2;
+}
+
 function draw() {
   ctx.clearRect(0, 0, cnv.width, cnv.height);
 
@@ -210,7 +220,13 @@ function draw() {
     atom.draw();
   }
 
-  if (mouse.state === 'click') mouse.state = 'down';
+  let totalKineticEnergy = 0;
+  for (const atom of atoms) {
+    totalKineticEnergy += kineticEnergy(atom.mass, Math.sqrt(atom.vy ** 2 + atom.vx ** 2));
+  }
+  kineticEnergyDisplay.innerHTML = totalKineticEnergy;
+
+  if (mouse.state === "click") mouse.state = "down";
 
   requestAnimationFrame(draw);
 }

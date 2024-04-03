@@ -7,9 +7,10 @@ import math
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
 import seaborn as sns
+from sklearn.linear_model import LinearRegression
 
-data = pd.DataFrame(pd.read_csv("newdata.csv")).dropna()
-x = data.iloc[:, [3, 4, 5]]
+data = pd.DataFrame(pd.read_csv("./csv/training-data.csv")).dropna()
+x = data.iloc[:, [3, 5]]
 y = data.iloc[:, 6]
 
 # matrix = data.corr()
@@ -17,32 +18,35 @@ y = data.iloc[:, 6]
 # sns.heatmap(matrix, cmap="Greens", annot=True)
 # plt.show()
 model = keras.Sequential()
-model.add(keras.layers.Dense(6))
-model.add(keras.layers.Dense(6))
-model.add(keras.layers.Dense(6))
-model.add(keras.layers.Dense(6))
+model.add(keras.layers.Dense(10))
+model.add(keras.layers.Dense(10))
+model.add(keras.layers.Dense(10))
 model.add(keras.layers.Dense(1))
 x = tf.constant(x)
 y = tf.constant(y)
 # model.compile(optimizer=keras.optimizers.SGD(
 #     learning_rate=0.001), loss='mae', metrics=["mae"])
-model.compile(optimizer='Adam', loss='mae', metrics=["mae"])
-model.fit(x, y, epochs=25)
-predicted = model.predict(x)
-experimental = y.numpy()
-average = np.add(predicted, experimental)
+model.compile(optimizer="Adam", loss="mae", metrics=["mae"])
+model.fit(x, y, epochs=1)
 
-error = []
-for i in range(len(predicted)):
-    error.append(abs(predicted[i][0] - experimental[i]))
-average = sum(error) / len(error)
 
-# test = np.array([x[0]])
-# print(model.predict(test)[0][0])
-# print(np.array(y[0]))
+def getError(predicted, experimental):
+    average = np.add(predicted, experimental)
 
-# electronegativity = list(zip(*x.numpy()))[5]
-# plt.scatter(electronegativity, y)
-# plt.show()
+    error = []
+    for i in range(len(predicted)):
+        error.append(abs(predicted[i] - experimental[i]))
+    average = sum(error) / len(error)
+    max_error = max(error)
 
-print("Average: " + str(average))
+    print(f"Average Error: {average}")
+    print(f"Max Error: {max_error}")
+
+
+# getError(model.predict(x).flatten(), y.numpy())
+# electronegativity = list(zip(*x))
+# print(electronegativity)
+# LinearRegression().fit(electronegativity.numpy().reshape(-1, 1), y)
+# y_pred = model.predict(electronegativity)
+# plt.scatter(electronegativity, y, color="b")
+# plt.plot(electronegativity, y_pred, color="k")

@@ -10,22 +10,16 @@ import seaborn as sns
 from sklearn.linear_model import LinearRegression
 
 data = pd.DataFrame(pd.read_csv("./csv/training-data.csv")).dropna()
-x = data.iloc[:, [3, 5]]
-y = data.iloc[:, 6]
 
-# matrix = data.corr()
-# plt.subplots(figsize=(25, 20))
-# sns.heatmap(matrix, cmap="Greens", annot=True)
-# plt.show()
+x = tf.constant(data.iloc[:, 1:])
+y = tf.constant(data.iloc[:, 0])
+
 model = keras.Sequential()
-model.add(keras.layers.Dense(10))
-model.add(keras.layers.Dense(10))
-model.add(keras.layers.Dense(10))
+model.add(keras.layers.Dense(20))
+model.add(keras.layers.Dense(20))
+model.add(keras.layers.Dense(20))
 model.add(keras.layers.Dense(1))
-x = tf.constant(x)
-y = tf.constant(y)
-# model.compile(optimizer=keras.optimizers.SGD(
-#     learning_rate=0.001), loss='mae', metrics=["mae"])
+
 model.compile(optimizer="Adam", loss="mae", metrics=["mae"])
 model.fit(x, y, epochs=1)
 
@@ -39,14 +33,23 @@ def getError(predicted, experimental):
     average = sum(error) / len(error)
     max_error = max(error)
 
+    print()
     print(f"Average Error: {average}")
     print(f"Max Error: {max_error}")
+    print(error)
 
 
-# getError(model.predict(x).flatten(), y.numpy())
-# electronegativity = list(zip(*x))
-# print(electronegativity)
-# LinearRegression().fit(electronegativity.numpy().reshape(-1, 1), y)
-# y_pred = model.predict(electronegativity)
-# plt.scatter(electronegativity, y, color="b")
-# plt.plot(electronegativity, y_pred, color="k")
+getError(model.predict(x).flatten(), y.numpy())
+
+# model.save('my_model.keras')
+
+electronegativity = np.array(list(x.numpy().T[11])).reshape((-1, 1))
+bond_energy = np.array(list(y.numpy()))
+model1 = LinearRegression().fit(
+    electronegativity,
+    bond_energy,
+)
+y_pred = model1.predict(electronegativity)
+plt.scatter(electronegativity, bond_energy, color="b")
+plt.plot(electronegativity, y_pred, color="k")
+plt.show()

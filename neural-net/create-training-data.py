@@ -24,8 +24,8 @@ def array_string(array, index1, index2):
     return str([array[index1], array[index2]])
 
 
-element_data = pd.DataFrame(pd.read_csv("./csv/elements.csv"))
-bond_data = pd.DataFrame(pd.read_csv("./csv/bonds.csv"))
+element_data = pd.DataFrame(pd.read_csv("../csv/elements.csv"))
+bond_data = pd.DataFrame(pd.read_csv("../csv/bonds.csv"))
 bond_energy = bond_data["Bond E"].to_list()
 training_data = [bond_energy]
 bonds = [re.split("-|=|≡", x) for x in bond_data["Bond"].to_list()]
@@ -58,7 +58,7 @@ for i in range(len(bonds)):
     training_data[11].append(element_data["Atomic Radius"][atom1])
     training_data[12].append(element_data["Atomic Radius"][atom2])
 
-with open("./csv/training-data.csv", "w", newline="") as file:
+with open("../csv/training-data.csv", "w", newline="") as file:
     csvwriter = csv.writer(file)
     csvwriter.writerow(
         [

@@ -1,4 +1,4 @@
-const data = {
+const elementData = {
   Helium: [28, 0],
   Iridium: [141, 2.2],
   Samarium: [198, 1.17],

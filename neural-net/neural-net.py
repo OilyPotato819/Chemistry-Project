@@ -9,7 +9,7 @@ from sklearn.metrics import r2_score
 import seaborn as sns
 from sklearn.linear_model import LinearRegression
 
-data = pd.DataFrame(pd.read_csv("./csv/training-data.csv")).dropna()
+data = pd.DataFrame(pd.read_csv("../csv/training-data.csv")).dropna()
 
 x = tf.constant(data.iloc[:, 1:])
 y = tf.constant(data.iloc[:, 0])

@@ -1,10 +1,10 @@
-let cnv = document.getElementById("canvas");
-let ctx = cnv.getContext("2d");
+let cnv = document.getElementById('canvas');
+let ctx = cnv.getContext('2d');
 
 cnv.width = window.innerWidth - 22;
 cnv.height = window.innerHeight - 22;
 
-let kineticEnergyDisplay = document.getElementById("ke");
+let kineticEnergyDisplay = document.getElementById('ke');
 class Atom {
   constructor(x, y, r, speed, mass, color) {
     this.x = x;
@@ -31,7 +31,7 @@ class Atom {
         dist = this.r + atom.r;
       }
 
-      const force = LJForce(dist, 0.1, 22);
+      const force = morseForce(dist, 0.1, 22);
       const components = decomposeForce(angle, force);
 
       this.vx += components.x / this.mass;
@@ -67,7 +67,7 @@ class Mouse {
   constructor() {
     this.x = 0;
     this.y = 0;
-    this.state = "up";
+    this.state = 'up';
   }
 
   update(event) {
@@ -90,15 +90,15 @@ class Container {
       const mousePos = i < 2 ? mouse.x : mouse.y;
       const dist = Math.abs(mousePos - this.pos[i]);
       if (dist > this.clickDist) {
-        canvas.style.cursor = "default";
+        canvas.style.cursor = 'default';
         continue;
       }
-      canvas.style.cursor = "n-resize";
-      if (mouse.state != "click") continue;
+      canvas.style.cursor = 'n-resize';
+      if (mouse.state != 'click') continue;
       this.drag[Math.floor(i / 2)] = i;
     }
 
-    if (mouse.state === "up") {
+    if (mouse.state === 'up') {
       this.velocity = [0, 0, 0, 0];
       this.drag = [null, null];
       return;
@@ -118,7 +118,7 @@ class Container {
   }
 
   draw() {
-    ctx.strokeStyle = "black";
+    ctx.strokeStyle = 'black';
     ctx.strokeRect(this.pos[0], this.pos[2], this.pos[1] - this.pos[0], this.pos[3] - this.pos[2]);
   }
 }
@@ -134,16 +134,16 @@ for (let n = 0; n < atomNum; n++) {
   atoms.push(new Atom((n % 15) * 20 + 20, Math.floor(n / 15) * 20 + 20, 10, 1, 1, color));
 }
 
-document.addEventListener("mousemove", (event) => {
+document.addEventListener('mousemove', (event) => {
   mouse.update(event);
 });
 
-document.addEventListener("mousedown", () => {
-  mouse.state = "click";
+document.addEventListener('mousedown', () => {
+  mouse.state = 'click';
 });
 
-document.addEventListener("mouseup", () => {
-  mouse.state = "up";
+document.addEventListener('mouseup', () => {
+  mouse.state = 'up';
 });
 
 function resolveCollision(obj1, obj2, angle, dist) {
@@ -198,8 +198,17 @@ function decomposeForce(angle, magnitude) {
   return { x: magnitude * Math.cos(angle), y: magnitude * Math.sin(angle) };
 }
 
-function LJForce(distance, dispersion, size) {
-  return 24 * dispersion * ((2 * size ** 12) / distance ** 13 - size ** 6 / distance ** 7);
+function morseForce(atom1, atom2, vibFreq) {
+  const { bde, bondLength } = getBondInfo(atom1, atom2);
+  const dist = calcDist(atom1, atom2);
+
+  const reducedMass = 1 / (1 / atom1.mass + 1 / atom2.mass);
+
+  const radicand = (2 * reducedMass) / bde;
+  const forceConstant = Math.PI * vibFreq * Math.sqrt(radicand);
+
+  const naturalBase = Math.E ** (-forceConstant * (dist - bondLength));
+  return 2 * bde * forceConstant * naturalBase * (naturalBase - 1);
 }
 
 function kineticEnergy(mass, velocity) {
@@ -226,7 +235,7 @@ function draw() {
   }
   kineticEnergyDisplay.innerHTML = totalKineticEnergy;
 
-  if (mouse.state === "click") mouse.state = "down";
+  if (mouse.state === 'click') mouse.state = 'down';
 
   requestAnimationFrame(draw);
 }

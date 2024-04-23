@@ -6,14 +6,15 @@ cnv.height = window.innerHeight - 22;
 
 let kineticEnergyDisplay = document.getElementById('ke');
 class Atom {
-  constructor(x, y, r, speed, mass, color) {
+  constructor(x, y, r, speed, symbol, color) {
     this.x = x;
     this.y = y;
     this.vx = Math.random() * speed * 2 - speed;
     this.vy = Math.random() * speed * 2 - speed;
     this.r = r;
-    this.mass = mass;
     this.color = color;
+
+    Object.assign(this, elementData.get(symbol));
   }
 
   update() {
@@ -31,7 +32,8 @@ class Atom {
         dist = this.r + atom.r;
       }
 
-      const force = morseForce(dist, 0.1, 22);
+      const force = morseForce(this, atom, dist);
+      console.log(force);
       const components = decomposeForce(angle, force);
 
       this.vx += components.x / this.mass;
@@ -123,16 +125,13 @@ class Container {
   }
 }
 
+let vibFreq = 1;
 let atoms = [];
 let mouse = new Mouse();
 let container = new Container([0, cnv.width, 0, cnv.height]);
 
-const atomNum = 500;
-for (let n = 0; n < atomNum; n++) {
-  const colorStep = 360 / atomNum;
-  const color = `rgb(${n * colorStep}, ${360 - n * colorStep}, ${360 - n * colorStep})`;
-  atoms.push(new Atom((n % 15) * 20 + 20, Math.floor(n / 15) * 20 + 20, 10, 1, 1, color));
-}
+atoms.push(new Atom(100, 100, 10, 1, 'H', 'red'));
+atoms.push(new Atom(100, 200, 10, 1, 'H', 'red'));
 
 document.addEventListener('mousemove', (event) => {
   mouse.update(event);
@@ -145,6 +144,13 @@ document.addEventListener('mousedown', () => {
 document.addEventListener('mouseup', () => {
   mouse.state = 'up';
 });
+
+function getBondInfo(atom1, atom2) {
+  const bondString = [atom1.symbol, atom2.symbol].sort().toString().replace(',', '-');
+  const bde = bondData.get(bondString);
+  const bondLength = atom1.covalentRadius + atom2.covalentRadius;
+  return { bde: bde, bondLength: bondLength };
+}
 
 function resolveCollision(obj1, obj2, angle, dist) {
   const m1 = obj1.mass;
@@ -198,9 +204,8 @@ function decomposeForce(angle, magnitude) {
   return { x: magnitude * Math.cos(angle), y: magnitude * Math.sin(angle) };
 }
 
-function morseForce(atom1, atom2, vibFreq) {
+function morseForce(atom1, atom2, dist) {
   const { bde, bondLength } = getBondInfo(atom1, atom2);
-  const dist = calcDist(atom1, atom2);
 
   const reducedMass = 1 / (1 / atom1.mass + 1 / atom2.mass);
 

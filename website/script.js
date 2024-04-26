@@ -6,17 +6,16 @@ cnv.height = window.innerHeight - 22;
 
 let kineticEnergyDisplay = document.getElementById('ke');
 class Atom {
-  constructor(x, y, r, speed, symbol, color) {
+  constructor(x, y, speed, symbol, color) {
     this.x = x;
     this.y = y;
     this.vx = Math.random() * speed * 2 - speed;
     this.vy = Math.random() * speed * 2 - speed;
-    this.r = r;
     this.color = color;
 
     Object.assign(this, elementData.get(symbol));
-    this.r = this.covalentRadius * scale * 0.9;
-
+    this.r = this.covalentRadius;
+    this.lonepairs = (8 - this.valency) % 4;
     this.bonds = [];
   }
 
@@ -103,7 +102,7 @@ class Atom {
   draw() {
     ctx.fillStyle = this.color;
     ctx.beginPath();
-    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.arc(this.x * scale, this.y * scale, this.r * scale, 0, Math.PI * 2);
     ctx.fill();
   }
 }
@@ -124,16 +123,17 @@ class Mouse {
 
 class Container {
   constructor(pos) {
-    this.pos = pos;
+    this.canvasPos = pos;
+    this.pos = this.canvasPos.map((x) => x / scale);
     this.velocity = [0, 0, 0, 0];
     this.drag = [null, null];
     this.clickDist = 10;
   }
 
   update() {
-    for (let i = 0; i < this.pos.length; i++) {
+    for (let i = 0; i < this.canvasPos.length; i++) {
       const mousePos = i < 2 ? mouse.x : mouse.y;
-      const dist = Math.abs(mousePos - this.pos[i]);
+      const dist = Math.abs(mousePos - this.canvasPos[i]);
       if (dist > this.clickDist) {
         canvas.style.cursor = 'default';
         continue;
@@ -151,39 +151,46 @@ class Container {
 
     if (this.drag[0] != null) {
       const index = this.drag[0];
-      this.velocity[index] = mouse.x - this.pos[index];
-      this.pos[index] = mouse.x;
+      this.velocity[index] = mouse.x - this.canvasPos[index];
+      this.canvasPos[index] = mouse.x;
     }
 
     if (this.drag[1] != null) {
       const index = this.drag[1];
-      this.velocity[index] = mouse.y - this.pos[index];
-      this.pos[index] = mouse.y;
+      this.velocity[index] = mouse.y - this.canvasPos[index];
+      this.canvasPos[index] = mouse.y;
     }
+
+    this.pos = this.canvasPos.map((x) => x / scale);
   }
 
   draw() {
     ctx.strokeStyle = 'black';
-    ctx.strokeRect(this.pos[0], this.pos[2], this.pos[1] - this.pos[0], this.pos[3] - this.pos[2]);
+    ctx.strokeRect(this.canvasPos[0], this.canvasPos[2], this.canvasPos[1] - this.canvasPos[0], this.canvasPos[3] - this.canvasPos[2]);
   }
 }
 
+const maxRepulsion = 100;
+const simulationSpeed = 0.01;
+const scale = 0.5;
+const cor = 0.5;
+const friction = 0.999;
+const vibFreq = 0.1;
+
 let lastTime;
-let simulationSpeed = 0.01;
-let scale = 0.5;
-let cor = 0.7;
-let friction = 0.999;
-let vibFreq = 0.2;
 let atoms = [];
 let mouse = new Mouse();
 let container = new Container([0, cnv.width, 0, cnv.height]);
 
-for (let n = 0; n < 50; n++) {
-  const index = Math.floor(Math.random() * 2);
-  const symbol = ['C', 'H'][index];
-  const color = ['blue', 'red'][index];
-  atoms.push(new Atom(Math.random() * cnv.width, Math.random() * cnv.height, 10, 1, symbol, color));
-}
+// for (let n = 0; n < 50; n++) {
+//   const index = Math.floor(Math.random() * 3);
+//   const symbol = ['C', 'H', 'O'][index];
+//   const color = ['blue', 'red', 'green'][index];
+//   atoms.push(new Atom(Math.random() * (cnv.width / scale), Math.random() * (cnv.height / scale), 1, symbol, color));
+// }
+
+atoms.push(new Atom(500, 500, 0, 'C', 'blue'));
+atoms.push(new Atom(400, 400, 0, 'H', 'red'));
 
 document.addEventListener('mousemove', (event) => {
   mouse.update(event);
@@ -206,8 +213,8 @@ document.addEventListener('visibilitychange', () => {
 function getBondInfo(atom1, atom2) {
   const bondString = [atom1.symbol, atom2.symbol].sort().toString().replace(',', '-');
   const bde = bondData.get(bondString);
-  const bondLength = atom1.covalentRadius + atom2.covalentRadius;
-  return { bde: bde, bondLength: bondLength };
+  const radiiSum = atom1.covalentRadius + atom2.covalentRadius;
+  return { bde: bde, radiiSum: radiiSum };
 }
 
 function resolveCollision(obj1, obj2, angle, dist) {
@@ -261,23 +268,26 @@ function decomposeForce(angle, magnitude) {
 }
 
 function morseForce(atom1, atom2, dist) {
-  let shouldBond = false;
-  const { bde, bondLength } = getBondInfo(atom1, atom2);
-  const r = dist / scale;
+  const { bde, radiiSum } = getBondInfo(atom1, atom2);
 
-  const reducedMass = 1 / (1 / atom1.atomicMass + 1 / atom2.atomicMass);
+  const reducedMass = (atom1.atomicMass * atom2.atomicMass) / (atom1.atomicMass + atom2.atomicMass);
 
   const forceConstant = (2 * Math.PI * vibFreq) ** 2 * reducedMass;
   const a = Math.sqrt(forceConstant / (2 * bde));
 
-  const naturalBase = Math.E ** (-a * (r - bondLength));
+  const naturalLog = Math.log(0.5 + Math.sqrt(maxRepulsion / (2 * a * bde) + 0.25));
+  const bondLength = naturalLog / a + radiiSum;
+
+  const naturalBase = Math.E ** (-a * (dist - bondLength));
   const force = 2 * bde * a * naturalBase * (naturalBase - 1);
 
-  if (dist < Math.log(2) / a + bondLength) {
-    shouldBond = true;
-  }
+  const shouldBond = dist < Math.log(2) / a + bondLength;
 
   return { force: force, shouldBond: shouldBond };
+}
+
+function electrostaticForce(charge1, charge2, dist) {
+  return 8.99e9 * ((charge1 * charge2) / dist ** 2);
 }
 
 function kineticEnergy(mass, velocity) {

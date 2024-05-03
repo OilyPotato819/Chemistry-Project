@@ -17,44 +17,13 @@ class Atom {
     this.r = this.covalentRadius;
     this.lonepairs = (8 - this.valency) % 4;
     this.bonds = [];
+    this.fullyBonded = false;
+    this.furthestBond = { dist: -Infinity };
   }
 
   update(elapsedTime) {
     this.x += this.vx * elapsedTime;
     this.y += this.vy * elapsedTime;
-
-    for (const atom of atoms) {
-      if (atom === this) continue;
-
-      const angle = calcAngle(this, atom);
-      let dist = calcDist(this, atom);
-
-      if (dist < this.r + atom.r) {
-        resolveCollision(this, atom, angle, dist);
-        dist = this.r + atom.r;
-      }
-
-      const furthestBond = this.getFurthestBond();
-      if (furthestBond && dist < furthestBond.dist) {
-        this.breakBond(furthestBond.atom);
-      }
-
-      const { force, shouldBond } = morseForce(this, atom, dist);
-      const bonded = this.bonds.includes(atom);
-
-      if ((this.bonds.length === this.valency || atom.bonds.length === atom.valency) && !bonded) continue;
-
-      if (shouldBond && !bonded) {
-        this.createBond(atom);
-      } else if (!shouldBond && bonded) {
-        this.breakBond(atom);
-      }
-
-      const components = decomposeForce(angle, force);
-
-      this.vx += (components.x / this.atomicMass) * elapsedTime;
-      this.vy += (components.y / this.atomicMass) * elapsedTime;
-    }
 
     this.vx *= friction;
     this.vy *= friction;
@@ -76,27 +45,36 @@ class Atom {
     }
   }
 
-  getFurthestBond() {
-    let furthestBond;
+  applyForce(force, angle, elapsedTime) {
+    const components = decomposeForce(force, angle);
+
+    this.vx += (components.x / this.atomicMass) * elapsedTime;
+    this.vy += (components.y / this.atomicMass) * elapsedTime;
+  }
+
+  setFurthestBond() {
+    let furthestBond = { dist: -Infinity };
 
     for (const bondedAtom of this.bonds) {
       const dist = calcDist(this, bondedAtom);
-      if (!furthestBond || dist > furthestBond.dist) {
+      if (dist > furthestBond.dist) {
         furthestBond = { atom: bondedAtom, dist: dist };
       }
     }
 
-    return furthestBond;
+    this.furthestBond = furthestBond;
   }
 
   createBond(atom) {
     this.bonds.push(atom);
-    atom.bonds.push(this);
+    this.setFurthestBond();
+    this.fullyBonded = this.bonds.length === this.valency;
   }
 
   breakBond(atom) {
     this.bonds.splice(this.bonds.indexOf(atom), 1);
-    atom.bonds.splice(atom.bonds.indexOf(this), 1);
+    this.setFurthestBond();
+    this.fullyBonded = this.bonds.length === this.valency;
   }
 
   draw() {
@@ -170,7 +148,7 @@ class Container {
   }
 }
 
-const maxRepulsion = 100;
+const maxRepulsion = 10;
 const simulationSpeed = 0.01;
 const scale = 0.5;
 const cor = 0.5;
@@ -191,6 +169,7 @@ let container = new Container([0, cnv.width, 0, cnv.height]);
 
 atoms.push(new Atom(500, 500, 0, 'C', 'blue'));
 atoms.push(new Atom(400, 400, 0, 'H', 'red'));
+atoms.push(new Atom(500, 350, 0, 'H', 'red'));
 
 document.addEventListener('mousemove', (event) => {
   mouse.update(event);
@@ -263,7 +242,7 @@ function calcDist(obj1, obj2) {
   return Math.sqrt((obj1.y - obj2.y) ** 2 + (obj1.x - obj2.x) ** 2);
 }
 
-function decomposeForce(angle, magnitude) {
+function decomposeForce(magnitude, angle) {
   return { x: magnitude * Math.cos(angle), y: magnitude * Math.sin(angle) };
 }
 
@@ -286,17 +265,58 @@ function morseForce(atom1, atom2, dist) {
   return { force: force, shouldBond: shouldBond };
 }
 
-function electrostaticForce(charge1, charge2, dist) {
-  return 8.99e9 * ((charge1 * charge2) / dist ** 2);
-}
+// function electrostaticForce(charge1, charge2, dist) {
+//   return 8.99e9 * ((charge1 * charge2) / dist ** 2);
+// }
 
 function kineticEnergy(mass, velocity) {
   return (mass * velocity ** 2) / 2;
 }
 
+function calcForces(elapsedTime) {
+  for (let i = 0; i < atoms.length - 1; i++) {
+    for (let j = i + 1; j < atoms.length; j++) {
+      const atom1 = atoms[i];
+      const atom2 = atoms[j];
+
+      const angle = calcAngle(atom1, atom2);
+      let dist = calcDist(atom1, atom2);
+
+      if (dist < atom1.r + atom2.r) {
+        resolveCollision(atom1, atom2, angle, dist);
+        dist = atom1.r + atom2.r;
+      }
+
+      // replaces furthest bond with current atom, if current atom is closer than bonded atom.
+      if (atom1.fullyBonded && atom1.furthestBond.dist >= atom2.furthestBond.dist && dist < atom1.furthestBond.dist) {
+        atom1.breakBond(atom1.furthestBond.atom);
+      } else if (atom2.fullyBonded && atom2.furthestBond.dist > atom1.furthestBond.dist && dist < atom2.furthestBond.dist) {
+        atom2.breakBond(atom2.furthestBond.atom);
+      }
+
+      const { force, shouldBond } = morseForce(atom1, atom2, dist);
+      const bonded = atom1.bonds.includes(atom2);
+
+      if ((atom1.fullyBonded || atom2.fullyBonded) && !bonded) continue;
+
+      if (shouldBond && !bonded) {
+        atom1.createBond(atom2);
+        atom2.createBond(atom1);
+      } else if (!shouldBond && bonded) {
+        atom1.breakBond(atom2);
+        atom2.breakBond(atom1);
+      }
+
+      atom1.applyForce(force, angle, elapsedTime);
+      atom2.applyForce(force, angle + Math.PI, elapsedTime);
+    }
+  }
+}
+
 function simulationStep(elapsedTime) {
   container.update();
 
+  calcForces(elapsedTime);
   for (const atom of atoms) {
     atom.update(elapsedTime);
   }

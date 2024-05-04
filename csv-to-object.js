@@ -19,7 +19,7 @@ fs.writeFileSync('./website/element-data.js', `${elementDataString}])`);
 
 function fixProperties(object) {
   for (const property in object) {
-    object[property] = +object[property] || object[property];
+    object[property] = isNaN(object[property]) ? object[property] : +object[property];
   }
   return object;
 }

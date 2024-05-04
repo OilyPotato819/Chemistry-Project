@@ -5,6 +5,7 @@ cnv.width = window.innerWidth - 22;
 cnv.height = window.innerHeight - 22;
 
 let kineticEnergyDisplay = document.getElementById('ke');
+
 class Atom {
   constructor(x, y, speed, symbol, color) {
     this.x = x;
@@ -15,18 +16,35 @@ class Atom {
 
     Object.assign(this, elementData.get(symbol));
     this.r = this.covalentRadius;
-    this.lonepairs = (8 - this.valency) % 4;
     this.bonds = [];
     this.fullyBonded = false;
     this.furthestBond = { dist: -Infinity };
+
+    const bondNum = this.valency + this.lonePairs;
+    for (let n = 0; n < bondNum; n++) {
+      const angle = (n + 2) * ((2 * Math.PI) / bondNum);
+      const atom = n < this.lonePairs ? 2 : 1;
+      this.bonds.push({ angle: angle, angularVelocity: 0, atom: atom });
+    }
   }
 
-  update(elapsedTime) {
+  update() {
     this.x += this.vx * elapsedTime;
     this.y += this.vy * elapsedTime;
 
     this.vx *= friction;
     this.vy *= friction;
+
+    for (let i = 0; i < this.bonds.length - 1; i++) {
+      for (let j = i + 1; j < this.bonds.length; j++) {
+        this.repulseBonds(this.bonds[i], this.bonds[j]);
+      }
+    }
+
+    for (const bond of this.bonds) {
+      bond.angle += bond.angularVelocity * elapsedTime;
+      bond.angularVelocity *= friction;
+    }
 
     if (this.x - this.r < container.pos[0]) {
       this.x = container.pos[0] + this.r;
@@ -45,11 +63,34 @@ class Atom {
     }
   }
 
-  applyForce(force, angle, elapsedTime) {
+  applyForce(force, angle) {
     const components = decomposeForce(force, angle);
 
     this.vx += (components.x / this.atomicMass) * elapsedTime;
     this.vy += (components.y / this.atomicMass) * elapsedTime;
+  }
+
+  applyTorque(magnitude, angle, bond) {
+    const torque = this.covalentRadius * magnitude * Math.sin(angle);
+    const inertia = this.covalentRadius ** 2;
+    const angularAcceleration = torque / inertia;
+
+    bond.angularVelocity += angularAcceleration * elapsedTime;
+  }
+
+  repulseBonds(bond1, bond2) {
+    const x = Math.cos(bond1.angle) - Math.cos(bond2.angle);
+    const y = Math.sin(bond1.angle) - Math.sin(bond2.angle);
+
+    const dist = Math.sqrt((this.covalentRadius * x) ** 2 + (this.covalentRadius * y) ** 2);
+    const forceAngle = Math.atan2(y, x);
+    const force = electrostaticForce(bond1.atom, bond2.atom, dist);
+
+    const angle1 = forceAngle - bond1.angle;
+    const angle2 = forceAngle + Math.PI - bond2.angle;
+
+    this.applyTorque(force, angle1, bond1);
+    this.applyTorque(force, angle2, bond2);
   }
 
   setFurthestBond() {
@@ -82,6 +123,16 @@ class Atom {
     ctx.beginPath();
     ctx.arc(this.x * scale, this.y * scale, this.r * scale, 0, Math.PI * 2);
     ctx.fill();
+
+    for (const bond of this.bonds) {
+      const x = this.x * scale + this.covalentRadius * scale * Math.cos(bond.angle);
+      const y = this.y * scale + this.covalentRadius * scale * Math.sin(bond.angle);
+
+      ctx.fillStyle = bond.atom == 1 ? 'red' : 'black';
+      ctx.beginPath();
+      ctx.arc(x, y, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 }
 
@@ -154,8 +205,10 @@ const scale = 0.5;
 const cor = 0.5;
 const friction = 0.999;
 const vibFreq = 0.1;
+const coulomb = 1000;
 
 let lastTime;
+let elapsedTime;
 let atoms = [];
 let mouse = new Mouse();
 let container = new Container([0, cnv.width, 0, cnv.height]);
@@ -167,9 +220,9 @@ let container = new Container([0, cnv.width, 0, cnv.height]);
 //   atoms.push(new Atom(Math.random() * (cnv.width / scale), Math.random() * (cnv.height / scale), 1, symbol, color));
 // }
 
-atoms.push(new Atom(500, 500, 0, 'C', 'blue'));
-atoms.push(new Atom(400, 400, 0, 'H', 'red'));
-atoms.push(new Atom(500, 350, 0, 'H', 'red'));
+atoms.push(new Atom(500, 500, 0, 'Cl', 'blue'));
+// atoms.push(new Atom(400, 400, 0, 'H', 'red'));
+// atoms.push(new Atom(500, 350, 0, 'H', 'red'));
 
 document.addEventListener('mousemove', (event) => {
   mouse.update(event);
@@ -265,9 +318,9 @@ function morseForce(atom1, atom2, dist) {
   return { force: force, shouldBond: shouldBond };
 }
 
-// function electrostaticForce(charge1, charge2, dist) {
-//   return 8.99e9 * ((charge1 * charge2) / dist ** 2);
-// }
+function electrostaticForce(charge1, charge2, dist) {
+  return coulomb * ((charge1 * charge2) / dist ** 2);
+}
 
 function kineticEnergy(mass, velocity) {
   return (mass * velocity ** 2) / 2;
@@ -340,10 +393,10 @@ function drawFrame() {
 }
 
 function loop(currentTime) {
-  const elapsedTime = (currentTime - lastTime) * simulationSpeed || 0;
+  elapsedTime = (currentTime - lastTime) * simulationSpeed || 0;
   lastTime = currentTime;
 
-  simulationStep(elapsedTime);
+  simulationStep();
   drawFrame();
   requestAnimationFrame(loop);
 }

@@ -14,15 +14,19 @@ class Atom {
     this.vx = Math.random() * speed * 2 - speed;
     this.vy = Math.random() * speed * 2 - speed;
     this.color = color;
-
+    //copies properties from element data (covalentRadius, electronegativity ...) into Atom object
     Object.assign(this, elementData.get(symbol));
+    //atom radius = covalent radius
     this.r = this.covalentRadius;
     this.bonds = [];
-
+    //valency = number of lone electrons that are free to bond
+    //lonepairs = electron pairs that won't bond
     const bondNum = this.valency + this.lonePairs;
     for (let i = 0; i < bondNum; i++) {
       const angle = i * ((2 * Math.PI) / bondNum);
+      //charge for lone pair is 2, charge for free electron is 1
       const charge = i < this.lonePairs ? 2 : 1;
+      //pushes electrons to bond array
       this.bonds.push(new Electron(this, angle, charge, i));
     }
   }
@@ -74,8 +78,10 @@ class Atom {
 
     const dist = Math.sqrt(x ** 2 + y ** 2);
     const forceAngle = Math.atan2(y, x);
+    //get coulomb force between electrons
+    //TODO: force between atom center and electron so that electrons rotate to accomodate a bond
     const force = electrostaticForce(electron1.charge, electron2.charge, dist);
-
+    //electrons 1 and 2 have reflected angles
     const angle1 = forceAngle - electron1.angle;
     const angle2 = forceAngle + Math.PI - electron2.angle;
 
@@ -131,7 +137,7 @@ class Electron {
   update() {
     this.angle += this.angularVelocity * elapsedTime;
     this.calcPosition();
-    this.angularVelocity *= friction;
+    this.angularVelocity *= electronFriction;
   }
 
   draw() {
@@ -227,6 +233,7 @@ const simulationSpeed = 0.01;
 const scale = 0.5;
 const cor = 0.5;
 const friction = 0.999;
+const electronFriction = 0.99;
 const vibFreq = 0.1;
 const coulomb = 10000;
 
@@ -244,10 +251,11 @@ let container = new Container([0, cnv.width, 0, cnv.height]);
 // }
 
 atoms.push(new Atom(800, 500, 0, 'N', 'blue'));
-atoms.push(new Atom(800, 700, 0, 'C', 'black'));
-// atoms.push(new Atom(650, 700, 0, 'H', 'blue'));
-// atoms.push(new Atom(400, 400, 0, 'H', 'red'));
-// atoms.push(new Atom(500, 350, 0, 'H', 'red'));
+atoms.push(new Atom(850, 700, 0, 'H', 'black'));
+atoms.push(new Atom(800, 900, 0, 'H', 'blue'));
+atoms.push(new Atom(400, 400, 0, 'H', 'red'));
+atoms.push(new Atom(500, 350, 0, 'H', 'red'));
+atoms.push(new Atom(600, 600, 0, 'C', 'red'));
 
 document.addEventListener('mousemove', (event) => {
   mouse.update(event);
@@ -324,7 +332,7 @@ function decomposeForce(magnitude, angle) {
   return { x: magnitude * Math.cos(angle), y: magnitude * Math.sin(angle) };
 }
 
-function morseForce(atom1, atom2, dist) {
+function morseForce(atom1, atom2, atomDist, electronDist) {
   const { bde, radiiSum } = getBondInfo(atom1, atom2);
 
   const reducedMass = (atom1.atomicMass * atom2.atomicMass) / (atom1.atomicMass + atom2.atomicMass);
@@ -335,10 +343,10 @@ function morseForce(atom1, atom2, dist) {
   const naturalLog = Math.log(0.5 + Math.sqrt(maxRepulsion / (2 * a * bde) + 0.25));
   const bondLength = naturalLog / a + radiiSum;
 
-  const naturalBase = Math.E ** (-a * (dist - bondLength));
+  const naturalBase = Math.E ** (-a * (atomDist - bondLength));
   const force = 2 * bde * a * naturalBase * (naturalBase - 1);
 
-  const shouldBond = dist < Math.log(2) / a + bondLength;
+  const shouldBond = electronDist < Math.log(2) / a + bondLength;
 
   return { force: force, shouldBond: shouldBond };
 }
@@ -349,6 +357,23 @@ function electrostaticForce(charge1, charge2, dist) {
 
 function kineticEnergy(mass, velocity) {
   return (mass * velocity ** 2) / 2;
+}
+
+function attractElectrons(electron1, electron2) {
+  const dist1 = calcDist(electron1, electron2.parentAtom);
+  const dist2 = calcDist(electron2, electron1.parentAtom);
+
+  const force1 = electrostaticForce(electron1.charge, 9, dist1);
+  const force2 = electrostaticForce(electron2.charge, 9, dist2);
+
+  const forceAngle1 = calcAngle(electron1, electron2.parentAtom);
+  const forceAngle2 = calcAngle(electron2, electron1.parentAtom);
+
+  const angle1 = forceAngle1 + Math.PI - electron1.angle;
+  const angle2 = forceAngle2 + Math.PI - electron2.angle;
+
+  electron1.applyTorque(force1, angle1);
+  electron2.applyTorque(force2, angle2);
 }
 
 function calcForces() {
@@ -369,18 +394,24 @@ function calcForces() {
 
       const electron1 = closestBond.bond1.parentElectron || closestBond.bond1;
       const electron2 = closestBond.bond2.parentElectron || closestBond.bond2;
-      const bondAngle = calcAngle(electron1, electron2);
 
-      const bondDist = closestBond.dist + atom1.covalentRadius + atom2.covalentRadius;
-      const { force, shouldBond } = morseForce(atom1, atom2, bondDist);
+      attractElectrons(electron1, electron2);
 
-      atom1.applyForce(force, bondAngle);
-      atom2.applyForce(force, bondAngle + Math.PI);
+      // make the morse force care about the distance between bonding electrons
+
+      const angle1 = calcAngle(electron1.parentAtom, electron2);
+      const angle2 = calcAngle(electron2.parentAtom, electron1);
+
+      const { force, shouldBond } = morseForce(atom1, atom2, atomDist, closestBond.dist);
+
+      atom1.applyForce(force, angle1);
+      atom2.applyForce(force, angle2);
 
       if (shouldBond && !bonded) {
         atom1.createBond(atom2, closestBond.bond1, closestBond.bond2);
         atom2.createBond(atom1, closestBond.bond2, closestBond.bond1);
       } else if (!shouldBond && bonded) {
+        if (!(closestBond.bond1 instanceof Bond) || !(closestBond.bond2 instanceof Bond)) console.log(closestBond);
         atom1.breakBond(closestBond.bond1);
         atom2.breakBond(closestBond.bond2);
       }
@@ -390,6 +421,7 @@ function calcForces() {
 
 function getBondPairs(atom1, atom2) {
   let bondPairs = [];
+  //If bond one or bond two is a lone pair, skip.
   for (let bond1 of atom1.bonds) {
     if (bond1 instanceof Electron && bond1.charge === 2) continue;
     for (let bond2 of atom2.bonds) {
@@ -408,21 +440,26 @@ function getClosestBond(atom1, atom2) {
   const bondPairs = getBondPairs(atom1, atom2);
 
   for (const bondPair of bondPairs) {
-    if (bondPair.bond1.bondedAtom === atom2) {
+    const parentElectron1 = bondPair.bond1.parentElectron;
+    const parentElectron2 = bondPair.bond2.parentElectron;
+    const bondedElectron1 = bondPair.bond1.bondedElectron;
+    const bondedElectron2 = bondPair.bond2.parentElectron;
+
+    if (bondedElectron1 && bondedElectron1 === parentElectron2) {
       return { closestBond: bondPair, bonded: true };
     }
 
-    const dist1 = bondPair.bond1 instanceof Bond ? calcDist(bondPair.bond1.parentElectron, bondPair.bond1.bondedElectron) : Infinity;
-    const dist2 = bondPair.bond2 instanceof Bond ? calcDist(bondPair.bond2.parentElectron, bondPair.bond2.bondedElectron) : Infinity;
+    const dist1 = bondPair.bond1 instanceof Bond ? calcDist(parentElectron1, bondedElectron1) : Infinity;
+    const dist2 = bondPair.bond2 instanceof Bond ? calcDist(parentElectron2, bondedElectron2) : Infinity;
     const shouldBreakBonds = bondPair.dist < dist1 && bondPair.dist < dist2;
 
     if (shouldBreakBonds && bondPair.bond1 instanceof Bond) {
       atom1.breakBond(bondPair.bond1);
-      bondPair.bond1 = bondPair.bond1.parentElectron;
+      bondPair.bond1 = parentElectron1;
     }
     if (shouldBreakBonds && bondPair.bond2 instanceof Bond) {
       atom2.breakBond(bondPair.bond2);
-      bondPair.bond2 = bondPair.bond2.parentElectron;
+      bondPair.bond2 = parentElectron2;
     }
 
     if (bondPair.bond1 instanceof Electron && bondPair.bond2 instanceof Electron) {
@@ -454,7 +491,7 @@ function drawFrame() {
   for (const atom of atoms) {
     totalKineticEnergy += kineticEnergy(atom.atomicMass, Math.sqrt(atom.vy ** 2 + atom.vx ** 2));
   }
-  kineticEnergyDisplay.innerHTML = totalKineticEnergy;
+  kineticEnergyDisplay.innerHTML = Math.round(totalKineticEnergy);
 
   if (mouse.state === 'click') mouse.state = 'down';
 }

@@ -51,20 +51,20 @@ class Atom {
       bond.update();
     }
 
-    if (this.x - this.r < container.pos[0]) {
-      this.x = container.pos[0] + this.r;
-      this.vx = Math.abs(this.vx) + container.velocity[0];
-    } else if (this.x + this.r > container.pos[1]) {
-      this.x = container.pos[1] - this.r;
-      this.vx = -Math.abs(this.vx) + container.velocity[1];
+    if (this.x - this.r < container.pos.left) {
+      this.x = container.pos.left + this.r;
+      this.vx = Math.abs(this.vx) + container.velocity.left;
+    } else if (this.x + this.r > container.pos.right) {
+      this.x = container.pos.right - this.r;
+      this.vx = -Math.abs(this.vx) + container.velocity.right;
     }
 
-    if (this.y - this.r < container.pos[2]) {
-      this.y = container.pos[2] + this.r;
-      this.vy = Math.abs(this.vy) + container.velocity[2];
-    } else if (this.y + this.r > container.pos[3]) {
-      this.y = container.pos[3] - this.r;
-      this.vy = -Math.abs(this.vy) + container.velocity[3];
+    if (this.y - this.r < container.pos.top) {
+      this.y = container.pos.top + this.r;
+      this.vy = Math.abs(this.vy) + container.velocity.top;
+    } else if (this.y + this.r > container.pos.bottom) {
+      this.y = container.pos.bottom - this.r;
+      this.vy = -Math.abs(this.vy) + container.velocity.bottom;
     }
   }
 
@@ -104,6 +104,9 @@ class Atom {
     ctx.beginPath();
     ctx.arc(this.x * scale, this.y * scale, this.r * scale, 0, Math.PI * 2);
     ctx.fill();
+
+    ctx.fillStyle = "white";
+    ctx.fillText(this.symbol, this.x * scale, this.y * scale)
 
     for (const bond of this.bonds) {
       bond.draw();
@@ -182,12 +185,18 @@ class Mouse {
 }
 
 class Container {
-  constructor(pos) {
-    this.canvasPos = pos;
+  constructor(left, right, top, bottom) {
+    this.canvasPos = { left: left, right: right, top: top, bottom: bottom };
     this.pos = this.canvasPos.map((x) => x / scale);
-    this.velocity = [0, 0, 0, 0];
+    this.velocity = { left: 0, right: 0, top: 0, bottom: 0 };
     this.drag = [null, null];
     this.clickDist = 10;
+  }
+
+  calcPos() {
+    this.pos = Object.keys(this.canvasPos).forEach((key, _index) => {
+      this.canvasPos[key] * scale
+    })
   }
 
   update() {
@@ -235,6 +244,23 @@ class Container {
   }
 }
 
+class Catalogue {
+  constructor(pos) {
+    this.canvasPos = pos;
+    this.pos = this.canvasPos.map((x) => x / scale);
+  }
+
+  draw() {
+    ctx.strokeStyle = "black";
+    ctx.strokeRect(
+      this.canvasPos[0],
+      this.canvasPos[2],
+      this.canvasPos[1],
+      this.canvasPos[3]
+    );
+  }
+}
+
 const maxRepulsion = 50;
 const simulationSpeed = 0.01;
 const scale = 0.5;
@@ -248,7 +274,8 @@ let lastTime;
 let elapsedTime;
 let atoms = [];
 let mouse = new Mouse();
-let container = new Container([0, cnv.width, 0, cnv.height]);
+let container = new Container(0, cnv.width * (2 / 3), 0, cnv.height);
+let catalogue = new Catalogue([cnv.width * (21 / 30), cnv.width * (2 / 7), 0, cnv.height]);
 
 // for (let n = 0; n < 50; n++) {
 //   const index = Math.floor(Math.random() * 3);
@@ -506,6 +533,7 @@ function drawFrame() {
   for (const atom of atoms) {
     atom.draw();
   }
+  catalogue.draw()
 
   let totalKineticEnergy = 0;
   for (const atom of atoms) {

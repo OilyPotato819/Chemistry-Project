@@ -250,6 +250,11 @@ class Container {
       this.canvasPos[side] = mouse.y;
     }
 
+    if (this.canvasPos.right > catalogue.x - catalogue.marginLeft) {
+      this.canvasPos.right = catalogue.x - catalogue.marginLeft;
+      this.velocity.right = 0;
+    }
+
     this.calcPos();
   }
 
@@ -259,17 +264,67 @@ class Container {
   }
 }
 
-class Catalogue {
-  constructor(left, right, top, bottom) {
-    this.left = left;
-    this.right = right;
-    this.top = top;
-    this.bottom = bottom;
+class listItem {
+  constructor(pos, symbol) {
+    this.pos = pos;
+    this.state = 'none';
+    Object.assign(this, elementData.get(symbol));
   }
 
   draw() {
     ctx.strokeStyle = 'black';
-    ctx.strokeRect(this.left, this.top, this.right - this.left, this.bottom - this.top);
+    ctx.strokeRect(this.pos[0], this.pos[2], this.pos[1], this.pos[3]);
+
+    ctx.font = 'bold 16px serif';
+    ctx.fillStyle = 'black';
+    ctx.fillText(this.symbol, this.pos[0], this.pos[2]);
+  }
+}
+
+class Catalogue {
+  constructor(x, y, w, h) {
+    this.x = x;
+    this.y = y;
+    this.w = w;
+    this.h = h;
+    this.marginLeft = 30;
+    this.maps = this.fillList();
+    this.activeList = 'page1';
+  }
+
+  fillList() {
+    //   elementData.forEach((values, keys) => {
+    //     console.log(values, keys);
+    // });
+    let pageMap = new Map();
+    let keys = elementData.keys();
+    let size = { w: this.w, h: canvas.height / 40 };
+
+    for (let i = 1; i <= 3; i++) {
+      let pageArr = [];
+      let itemx = this.x;
+      let itemy = 2 * size.h;
+      for (let j = 0; j < 40; j++) {
+        if (i == 3 && j == 38) {
+          break;
+        }
+        pageArr.push(new listItem([itemx, this.w, itemy, size.h], keys.next().value));
+        itemy += size.h;
+      }
+      pageMap.set(`page${i}`, pageArr);
+      console.log(pageMap);
+    }
+    return pageMap;
+  }
+  draw() {
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+    ctx.strokeStyle = 'black';
+    ctx.strokeRect(this.x, this.y, this.w, this.h);
+    // console.log(this.maps.get("page1"));
+    for (let i = 0; i < this.maps.get('page1').length; i++) {
+      this.maps.get('page1')[i].draw();
+    }
   }
 }
 
@@ -287,7 +342,7 @@ let elapsedTime;
 let atoms = [];
 let mouse = new Mouse();
 let container = new Container(0, cnv.width * (2 / 3), 0, cnv.height);
-let catalogue = new Catalogue(cnv.width * 0.7, cnv.width, 0, cnv.height);
+let catalogue = new Catalogue(cnv.width * 0.7, 0, cnv.width * 0.3, cnv.height);
 
 // atoms.push(new Atom(900, 710, 0, 'H'));
 // atoms.push(new Atom(800, 720, 0, 'H'));
@@ -430,7 +485,6 @@ function ljForce(dist, atom1, atom2) {
   const dispersion = lj.dispersionFactor * Math.sqrt(atom1.polarizability * atom2.polarizability);
 
   const ljMagnitude = 24 * dispersion * ((2 * size ** 12) / dist ** 13 - size ** 6 / dist ** 7);
-  if (ljMagnitude > 1000) console.log(ljMagnitude, dispersion, size, dist);
   return ljMagnitude;
 }
 

@@ -92,7 +92,12 @@ class Atom {
   }
 
   createBond(atom, parentElectron, bondedElectron) {
-    this.bonds[parentElectron.index] = new Bond(this, atom, parentElectron, bondedElectron);
+    this.bonds[parentElectron.index] = new Bond(
+      this,
+      atom,
+      parentElectron,
+      bondedElectron
+    );
   }
 
   breakBond(bond) {
@@ -106,7 +111,7 @@ class Atom {
     ctx.fill();
 
     ctx.fillStyle = "white";
-    ctx.fillText(this.symbol, this.x * scale, this.y * scale)
+    ctx.fillText(this.symbol, this.x * scale, this.y * scale);
 
     for (const bond of this.bonds) {
       bond.draw();
@@ -195,8 +200,8 @@ class Container {
 
   calcPos() {
     this.pos = Object.keys(this.canvasPos).forEach((key, _index) => {
-      this.canvasPos[key] * scale
-    })
+      this.canvasPos[key] * scale;
+    });
   }
 
   update() {
@@ -244,12 +249,57 @@ class Container {
   }
 }
 
+class listItem {
+  constructor(pos, symbol) {
+    this.pos = pos;
+    this.state = "none";
+    Object.assign(this, elementData.get(symbol));
+  }
+
+  draw() {
+    ctx.strokeStyle = "black";
+    ctx.strokeRect(this.pos[0], this.pos[2], this.pos[1], this.pos[3]);
+
+    ctx.font = "bold 16px serif";
+    ctx.fillStyle = "black";
+    ctx.fillText(this.symbol, this.pos[0], this.pos[2]);
+  }
+}
+
 class Catalogue {
   constructor(pos) {
     this.canvasPos = pos;
     this.pos = this.canvasPos.map((x) => x / scale);
+    this.maps = this.fill_list();
+    this.activeList = "page1";
   }
 
+  fill_list() {
+    //   elementData.forEach((values, keys) => {
+    //     console.log(values, keys);
+    // });
+    let pageMap = new Map();
+    let keys = elementData.keys();
+    let size = { w: this.canvasPos[1], h: canvas.height / 40 };
+
+    for (let i = 1; i <= 3; i++) {
+      let pageArr = [];
+      let itemx = this.canvasPos[0];
+      let itemy = 2 * size.h;
+      for (let j = 0; j < 40; j++) {
+        if (i == 3 && j == 38) {
+          break;
+        }
+        pageArr.push(
+          new listItem([itemx, size.w, itemy, size.h], keys.next().value)
+        );
+        itemy += size.h;
+      }
+      pageMap.set(`page${i}`, pageArr);
+      console.log(pageMap);
+    }
+    return pageMap;
+  }
   draw() {
     ctx.strokeStyle = "black";
     ctx.strokeRect(
@@ -258,6 +308,10 @@ class Catalogue {
       this.canvasPos[1],
       this.canvasPos[3]
     );
+    // console.log(this.maps.get("page1"));
+    for (let i = 0; i < this.maps.get("page1").length; i++) {
+      this.maps.get("page1")[i].draw();
+    }
   }
 }
 
@@ -275,7 +329,12 @@ let elapsedTime;
 let atoms = [];
 let mouse = new Mouse();
 let container = new Container(0, cnv.width * (2 / 3), 0, cnv.height);
-let catalogue = new Catalogue([cnv.width * (21 / 30), cnv.width * (2 / 7), 0, cnv.height]);
+let catalogue = new Catalogue([
+  cnv.width * (21 / 30),
+  cnv.width * (2 / 7),
+  0,
+  cnv.height,
+]);
 
 // for (let n = 0; n < 50; n++) {
 //   const index = Math.floor(Math.random() * 3);
@@ -310,7 +369,10 @@ document.addEventListener("visibilitychange", () => {
 });
 
 function getBondInfo(atom1, atom2) {
-  const bondString = [atom1.symbol, atom2.symbol].sort().toString().replace(",", "-");
+  const bondString = [atom1.symbol, atom2.symbol]
+    .sort()
+    .toString()
+    .replace(",", "-");
   const bde = bondData.get(bondString);
   const radiiSum = atom1.covalentRadius + atom2.covalentRadius;
   return { bde: bde, radiiSum: radiiSum };
@@ -340,7 +402,8 @@ function collisionVelocities(m1, m2, x1, x2, v1, v2) {
   const dotProduct = diffV[0] * diffX[0] + diffV[1] * diffX[1];
   const normSquared = diffX[0] ** 2 + diffX[1] ** 2;
   const scalar = (cor * 2 * m2) / (m1 + m2);
-  const coefficient = normSquared === 0 ? 0 : scalar * (dotProduct / normSquared);
+  const coefficient =
+    normSquared === 0 ? 0 : scalar * (dotProduct / normSquared);
 
   return [v1[0] - coefficient * diffX[0], v1[1] - coefficient * diffX[1]];
 }
@@ -369,12 +432,16 @@ function decomposeForce(magnitude, angle) {
 function morseForce(atom1, atom2, atomDist, electronDist, angleDiff) {
   const { bde, radiiSum } = getBondInfo(atom1, atom2);
 
-  const reducedMass = (atom1.atomicMass * atom2.atomicMass) / (atom1.atomicMass + atom2.atomicMass);
+  const reducedMass =
+    (atom1.atomicMass * atom2.atomicMass) /
+    (atom1.atomicMass + atom2.atomicMass);
 
   const forceConstant = (2 * Math.PI * vibFreq) ** 2 * reducedMass;
   const a = Math.sqrt(forceConstant / (2 * bde));
 
-  const naturalLog = Math.log(0.5 + Math.sqrt(maxRepulsion / (2 * a * bde) + 0.25));
+  const naturalLog = Math.log(
+    0.5 + Math.sqrt(maxRepulsion / (2 * a * bde) + 0.25)
+  );
   let bondLength = naturalLog / a + radiiSum;
   bondLength *= angleDiff;
 
@@ -437,11 +504,23 @@ function calcForces() {
       const angle1 = calcAngle(electron1.parentAtom, electron2);
       const angle2 = calcAngle(electron2.parentAtom, electron1);
 
-      const angleDiff1 = calcAngleDiff(angle1 + Math.PI, electron2.angle % (2 * Math.PI));
-      const angleDiff2 = calcAngleDiff(angle2 + Math.PI, electron1.angle % (2 * Math.PI));
+      const angleDiff1 = calcAngleDiff(
+        angle1 + Math.PI,
+        electron2.angle % (2 * Math.PI)
+      );
+      const angleDiff2 = calcAngleDiff(
+        angle2 + Math.PI,
+        electron1.angle % (2 * Math.PI)
+      );
       const angleDiff = Math.max(angleDiff1, angleDiff2);
 
-      const { force, shouldBond } = morseForce(atom1, atom2, atomDist, closestBond.dist, angleDiff);
+      const { force, shouldBond } = morseForce(
+        atom1,
+        atom2,
+        atomDist,
+        closestBond.dist,
+        angleDiff
+      );
 
       atom1.applyForce(force, angle1);
       atom2.applyForce(force, angle2);
@@ -450,7 +529,10 @@ function calcForces() {
         atom1.createBond(atom2, closestBond.bond1, closestBond.bond2);
         atom2.createBond(atom1, closestBond.bond2, closestBond.bond1);
       } else if (!shouldBond && bonded) {
-        if (!(closestBond.bond1 instanceof Bond) || !(closestBond.bond2 instanceof Bond))
+        if (
+          !(closestBond.bond1 instanceof Bond) ||
+          !(closestBond.bond2 instanceof Bond)
+        )
           console.log(closestBond);
         atom1.breakBond(closestBond.bond1);
         atom2.breakBond(closestBond.bond2);
@@ -460,7 +542,10 @@ function calcForces() {
 }
 
 function calcAngleDiff(angle1, angle2) {
-  const angleDiff = Math.min(Math.abs(angle1 - angle2), 2 * Math.PI - Math.abs(angle1 - angle2));
+  const angleDiff = Math.min(
+    Math.abs(angle1 - angle2),
+    2 * Math.PI - Math.abs(angle1 - angle2)
+  );
   return 1 + (angleDiff / Math.PI) * (1.15 - 1);
 }
 
@@ -472,7 +557,10 @@ function getBondPairs(atom1, atom2) {
     for (let bond2 of atom2.bonds) {
       if (bond2 instanceof Electron && bond2.charge === 2) continue;
 
-      const bondDist = calcDist(bond1.parentElectron || bond1, bond2.parentElectron || bond2);
+      const bondDist = calcDist(
+        bond1.parentElectron || bond1,
+        bond2.parentElectron || bond2
+      );
       bondPairs.push({ bond1: bond1, bond2: bond2, dist: bondDist });
     }
   }
@@ -495,9 +583,13 @@ function getClosestBond(atom1, atom2) {
     }
 
     const dist1 =
-      bondPair.bond1 instanceof Bond ? calcDist(parentElectron1, bondedElectron1) : Infinity;
+      bondPair.bond1 instanceof Bond
+        ? calcDist(parentElectron1, bondedElectron1)
+        : Infinity;
     const dist2 =
-      bondPair.bond2 instanceof Bond ? calcDist(parentElectron2, bondedElectron2) : Infinity;
+      bondPair.bond2 instanceof Bond
+        ? calcDist(parentElectron2, bondedElectron2)
+        : Infinity;
     const shouldBreakBonds = bondPair.dist < dist1 && bondPair.dist < dist2;
 
     if (shouldBreakBonds && bondPair.bond1 instanceof Bond) {
@@ -509,7 +601,10 @@ function getClosestBond(atom1, atom2) {
       bondPair.bond2 = parentElectron2;
     }
 
-    if (bondPair.bond1 instanceof Electron && bondPair.bond2 instanceof Electron) {
+    if (
+      bondPair.bond1 instanceof Electron &&
+      bondPair.bond2 instanceof Electron
+    ) {
       return { closestBond: bondPair, bonded: false };
     }
   }
@@ -533,11 +628,14 @@ function drawFrame() {
   for (const atom of atoms) {
     atom.draw();
   }
-  catalogue.draw()
+  catalogue.draw();
 
   let totalKineticEnergy = 0;
   for (const atom of atoms) {
-    totalKineticEnergy += kineticEnergy(atom.atomicMass, Math.sqrt(atom.vy ** 2 + atom.vx ** 2));
+    totalKineticEnergy += kineticEnergy(
+      atom.atomicMass,
+      Math.sqrt(atom.vy ** 2 + atom.vx ** 2)
+    );
   }
   kineticEnergyDisplay.innerHTML = Math.round(totalKineticEnergy / 10 ** 12);
 

@@ -1,33 +1,39 @@
-let cnv = document.getElementById("canvas");
-let ctx = cnv.getContext("2d");
+let cnv = document.getElementById('canvas');
+let ctx = cnv.getContext('2d');
 
 cnv.width = window.innerWidth - 22;
 cnv.height = window.innerHeight - 22;
 
-let kineticEnergyDisplay = document.getElementById("ke");
+let kineticEnergyDisplay = document.getElementById('ke');
 
 class Atom {
-  constructor(x, y, speed, symbol, color) {
+  constructor(x, y, speed, symbol) {
     this.x = x;
     this.y = y;
+
     //random initial velocity
     this.vx = Math.random() * speed * 2 - speed;
     this.vy = Math.random() * speed * 2 - speed;
-    this.color = color;
+
     //copies properties from element data (covalentRadius, electronegativity ...) into Atom object
+    // valency = number of lone electrons that are free to bond
+    // lonepairs = electron pairs that won't bond
     Object.assign(this, elementData.get(symbol));
+
     //atom radius = covalent radius
     this.r = this.covalentRadius;
     this.bonds = [];
-    //valency = number of lone electrons that are free to bond
-    //lonepairs = electron pairs that won't bond
+
+    this.font = `${this.r * scale * 0.7}px sans-serif`;
+    this.borderColor = changeShade(this.color, 10);
+
     const bondNum = this.valency + this.lonePairs;
     for (let i = 0; i < bondNum; i++) {
       const angle = i * ((2 * Math.PI) / bondNum);
       //charge for lone pair is 2, charge for free electron is 1
       const charge = i < this.lonePairs ? 2 : 1;
       //pushes electrons to bond array
-      this.bonds.push(new Electron(this, angle, charge, i));
+      this.bonds.push(new Electron(this, angle, charge, i, this.color));
     }
   }
 
@@ -40,10 +46,7 @@ class Atom {
 
     for (let i = 0; i < this.bonds.length - 1; i++) {
       for (let j = i + 1; j < this.bonds.length; j++) {
-        this.repulseElectrons(
-          this.bonds[i].parentElectron || this.bonds[i],
-          this.bonds[j].parentElectron || this.bonds[j]
-        );
+        this.repulseElectrons(this.bonds[i].parentElectron || this.bonds[i], this.bonds[j].parentElectron || this.bonds[j]);
       }
     }
 
@@ -51,19 +54,19 @@ class Atom {
       bond.update();
     }
 
-    if (this.x - this.r < container.pos.left) {
-      this.x = container.pos.left + this.r;
+    if (this.x - this.r < container.scaledPos.left) {
+      this.x = container.scaledPos.left + this.r;
       this.vx = Math.abs(this.vx) + container.velocity.left;
-    } else if (this.x + this.r > container.pos.right) {
-      this.x = container.pos.right - this.r;
+    } else if (this.x + this.r > container.scaledPos.right) {
+      this.x = container.scaledPos.right - this.r;
       this.vx = -Math.abs(this.vx) + container.velocity.right;
     }
 
-    if (this.y - this.r < container.pos.top) {
-      this.y = container.pos.top + this.r;
+    if (this.y - this.r < container.scaledPos.top) {
+      this.y = container.scaledPos.top + this.r;
       this.vy = Math.abs(this.vy) + container.velocity.top;
-    } else if (this.y + this.r > container.pos.bottom) {
-      this.y = container.pos.bottom - this.r;
+    } else if (this.y + this.r > container.scaledPos.bottom) {
+      this.y = container.scaledPos.bottom - this.r;
       this.vy = -Math.abs(this.vy) + container.velocity.bottom;
     }
   }
@@ -105,8 +108,17 @@ class Atom {
     ctx.arc(this.x * scale, this.y * scale, this.r * scale, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = "white";
-    ctx.fillText(this.symbol, this.x * scale, this.y * scale)
+    ctx.strokeStyle = this.borderColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(this.x * scale, this.y * scale, this.r * scale, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = this.font;
+    ctx.fillText(this.symbol, this.x * scale, this.y * scale);
 
     for (const bond of this.bonds) {
       bond.draw();
@@ -115,15 +127,17 @@ class Atom {
 }
 
 class Electron {
-  constructor(parentAtom, angle, charge, index) {
+  constructor(parentAtom, angle, charge, index, parentColor) {
     this.parentAtom = parentAtom;
-    this.atomRadius = parentAtom.covalentRadius;
+    this.atomRadius = parentAtom.r;
     this.angle = angle;
     this.calcPosition();
     this.angularVelocity = 0;
     this.charge = charge;
     this.index = index;
-    this.color = this.charge === 1 ? "red" : "black";
+
+    const shadeSign = this.charge === 1 ? 1 : -1;
+    this.color = changeShade(parentColor, shadeSign * 30);
   }
 
   calcPosition() {
@@ -174,7 +188,7 @@ class Mouse {
   constructor() {
     this.x = 0;
     this.y = 0;
-    this.state = "up";
+    this.state = 'up';
   }
 
   update(event) {
@@ -187,132 +201,156 @@ class Mouse {
 class Container {
   constructor(left, right, top, bottom) {
     this.canvasPos = { left: left, right: right, top: top, bottom: bottom };
-    this.pos = this.canvasPos.map((x) => x / scale);
+    this.scaledPos = {};
+    this.calcPos();
+
     this.velocity = { left: 0, right: 0, top: 0, bottom: 0 };
-    this.drag = [null, null];
+    this.drag = { x: null, y: null };
     this.clickDist = 10;
   }
 
   calcPos() {
-    this.pos = Object.keys(this.canvasPos).forEach((key, _index) => {
-      this.canvasPos[key] * scale
-    })
+    for (const side in this.canvasPos) {
+      this.scaledPos[side] = this.canvasPos[side] / scale;
+    }
   }
 
   update() {
-    for (let i = 0; i < this.canvasPos.length; i++) {
-      const mousePos = i < 2 ? mouse.x : mouse.y;
-      const dist = Math.abs(mousePos - this.canvasPos[i]);
+    for (const side in this.canvasPos) {
+      const axis = side === 'left' || side === 'right' ? 'x' : 'y';
+      const dist = Math.abs(mouse[axis] - this.canvasPos[side]);
+
       if (dist > this.clickDist) {
-        canvas.style.cursor = "default";
+        canvas.style.cursor = 'default';
         continue;
       }
-      canvas.style.cursor = "n-resize";
-      if (mouse.state != "click") continue;
-      this.drag[Math.floor(i / 2)] = i;
+
+      canvas.style.cursor = 'n-resize';
+
+      if (mouse.state === 'click') {
+        this.drag[axis] = side;
+      }
     }
 
-    if (mouse.state === "up") {
-      this.velocity = [0, 0, 0, 0];
-      this.drag = [null, null];
+    if (mouse.state === 'up') {
+      this.velocity = { left: 0, right: 0, top: 0, bottom: 0 };
+      this.drag = { x: null, y: null };
       return;
     }
 
-    if (this.drag[0] != null) {
-      const index = this.drag[0];
-      this.velocity[index] = mouse.x - this.canvasPos[index];
-      this.canvasPos[index] = mouse.x;
+    if (this.drag.x != null) {
+      const side = this.drag.x;
+      this.velocity[side] = mouse.x - this.canvasPos[side];
+      this.canvasPos[side] = mouse.x;
     }
 
-    if (this.drag[1] != null) {
-      const index = this.drag[1];
-      this.velocity[index] = mouse.y - this.canvasPos[index];
-      this.canvasPos[index] = mouse.y;
+    if (this.drag.y != null) {
+      const side = this.drag.y;
+      this.velocity[side] = mouse.y - this.canvasPos[side];
+      this.canvasPos[side] = mouse.y;
     }
 
-    this.pos = this.canvasPos.map((x) => x / scale);
+    this.calcPos();
   }
 
   draw() {
-    ctx.strokeStyle = "black";
-    ctx.strokeRect(
-      this.canvasPos[0],
-      this.canvasPos[2],
-      this.canvasPos[1] - this.canvasPos[0],
-      this.canvasPos[3] - this.canvasPos[2]
-    );
+    ctx.strokeStyle = 'black';
+    ctx.strokeRect(this.canvasPos.left, this.canvasPos.top, this.canvasPos.right - this.canvasPos.left, this.canvasPos.bottom - this.canvasPos.top);
   }
 }
 
 class Catalogue {
-  constructor(pos) {
-    this.canvasPos = pos;
-    this.pos = this.canvasPos.map((x) => x / scale);
+  constructor(left, right, top, bottom) {
+    this.left = left;
+    this.right = right;
+    this.top = top;
+    this.bottom = bottom;
   }
 
   draw() {
-    ctx.strokeStyle = "black";
-    ctx.strokeRect(
-      this.canvasPos[0],
-      this.canvasPos[2],
-      this.canvasPos[1],
-      this.canvasPos[3]
-    );
+    ctx.strokeStyle = 'black';
+    ctx.strokeRect(this.left, this.top, this.right - this.left, this.bottom - this.top);
   }
 }
 
-const maxRepulsion = 50;
 const simulationSpeed = 0.01;
 const scale = 0.5;
 const cor = 0.5;
 const friction = 0.999;
 const electronFriction = 0.99;
-const vibFreq = 0.1;
 const coulomb = 10000;
+const morse = { vibFreq: 0.1, maxRepulsion: 50 };
+const lj = { sizeFactor: 3, dispersionFactor: 10 };
 
 let lastTime;
 let elapsedTime;
 let atoms = [];
 let mouse = new Mouse();
 let container = new Container(0, cnv.width * (2 / 3), 0, cnv.height);
-let catalogue = new Catalogue([cnv.width * (21 / 30), cnv.width * (2 / 7), 0, cnv.height]);
+let catalogue = new Catalogue(cnv.width * 0.7, cnv.width, 0, cnv.height);
 
-// for (let n = 0; n < 50; n++) {
-//   const index = Math.floor(Math.random() * 3);
-//   const symbol = ['C', 'H', 'O'][index];
-//   const color = ['blue', 'red', 'green'][index];
-//   atoms.push(new Atom(Math.random() * (cnv.width / scale), Math.random() * (cnv.height / scale), 1, symbol, color));
-// }
+// atoms.push(new Atom(900, 710, 0, 'H'));
+// atoms.push(new Atom(800, 720, 0, 'H'));
+// atoms.push(new Atom(400, 400, 0, 'H'));
+// atoms.push(new Atom(500, 350, 0, 'H'));
+// atoms.push(new Atom(600, 600, 0, 'C'));
+// atoms.push(new Atom(800, 500, 0, 'N'));
 
-atoms.push(new Atom(900, 710, 0, "H", "black"));
-atoms.push(new Atom(800, 720, 0, "H", "blue"));
-atoms.push(new Atom(400, 400, 0, "H", "red"));
-atoms.push(new Atom(500, 350, 0, "H", "red"));
-atoms.push(new Atom(600, 600, 0, "C", "red"));
-atoms.push(new Atom(800, 500, 0, "N", "blue"));
+randomAtoms(20, 300, ['H', 'O', 'C', 'N'], [6, 1, 1, 1]);
 
-document.addEventListener("mousemove", (event) => {
+// atoms.push(new Atom(500, 500, 0, 'He'));
+// atoms.push(new Atom(700, 500, 0, 'He'));
+
+document.addEventListener('mousemove', (event) => {
   mouse.update(event);
 });
 
-document.addEventListener("mousedown", () => {
-  mouse.state = "click";
+document.addEventListener('mousedown', () => {
+  mouse.state = 'click';
 });
 
-document.addEventListener("mouseup", () => {
-  mouse.state = "up";
+document.addEventListener('mouseup', () => {
+  mouse.state = 'up';
 });
 
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "hidden") {
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
     lastTime = undefined;
   }
 });
 
+function randomAtoms(maxNum, spacing, symbols, weights) {
+  let indexes = [];
+  for (let i = 0; i < weights.length; i++) {
+    indexes = [...indexes, ...Array(weights[i]).fill(i)];
+  }
+
+  let num = 0;
+  for (let y = 0; y < cnv.height; y += spacing) {
+    for (let x = 0; x < cnv.width; x += spacing) {
+      const index = indexes[Math.floor(Math.random() * indexes.length)];
+      const symbol = symbols[index];
+      atoms.push(new Atom(x, y, 5, symbol));
+      num++;
+      if (num === maxNum) return;
+    }
+  }
+}
+
+function changeShade(color, amount) {
+  let hexString = '#';
+  for (let i = 1; i < 6; i += 2) {
+    const colorValue = parseInt(color.slice(i, i + 2), 16);
+    const newColor = Math.min(Math.max(colorValue + amount, 0), 255);
+    hexString += newColor.toString(16).padStart(2, '0');
+  }
+  return hexString;
+}
+
 function getBondInfo(atom1, atom2) {
-  const bondString = [atom1.symbol, atom2.symbol].sort().toString().replace(",", "-");
+  const bondString = [atom1.symbol, atom2.symbol].sort().toString().replace(',', '-');
   const bde = bondData.get(bondString);
-  const radiiSum = atom1.covalentRadius + atom2.covalentRadius;
+  const radiiSum = atom1.r + atom2.r;
   return { bde: bde, radiiSum: radiiSum };
 }
 
@@ -371,19 +409,29 @@ function morseForce(atom1, atom2, atomDist, electronDist, angleDiff) {
 
   const reducedMass = (atom1.atomicMass * atom2.atomicMass) / (atom1.atomicMass + atom2.atomicMass);
 
-  const forceConstant = (2 * Math.PI * vibFreq) ** 2 * reducedMass;
+  const forceConstant = (2 * Math.PI * morse.vibFreq) ** 2 * reducedMass;
   const a = Math.sqrt(forceConstant / (2 * bde));
 
-  const naturalLog = Math.log(0.5 + Math.sqrt(maxRepulsion / (2 * a * bde) + 0.25));
+  const naturalLog = Math.log(0.5 + Math.sqrt(morse.maxRepulsion / (2 * a * bde) + 0.25));
   let bondLength = naturalLog / a + radiiSum;
   bondLength *= angleDiff;
 
   const naturalBase = Math.E ** (-a * (atomDist - bondLength));
-  const force = 2 * bde * a * naturalBase * (naturalBase - 1);
+  const magnitude = 2 * bde * a * naturalBase * (naturalBase - 1);
 
   const shouldBond = electronDist < Math.log(2) / a + bondLength;
 
-  return { force: force, shouldBond: shouldBond };
+  return { morseMagnitude: magnitude, shouldBond: shouldBond };
+}
+
+function ljForce(dist, atom1, atom2) {
+  // Lorentz-Berthelot rules
+  const size = lj.sizeFactor * ((atom1.r + atom2.r) / 2);
+  const dispersion = lj.dispersionFactor * Math.sqrt(atom1.polarizability * atom2.polarizability);
+
+  const ljMagnitude = 24 * dispersion * ((2 * size ** 12) / dist ** 13 - size ** 6 / dist ** 7);
+  if (ljMagnitude > 1000) console.log(ljMagnitude, dispersion, size, dist);
+  return ljMagnitude;
 }
 
 function electrostaticForce(charge1, charge2, dist) {
@@ -417,41 +465,44 @@ function calcForces() {
       const atom1 = atoms[i];
       const atom2 = atoms[j];
 
-      const angle = calcAngle(atom1, atom2);
+      const atomAngle = calcAngle(atom1, atom2);
       let atomDist = calcDist(atom1, atom2);
 
       if (atomDist < atom1.r + atom2.r) {
-        resolveCollision(atom1, atom2, angle, atomDist);
+        resolveCollision(atom1, atom2, atomAngle, atomDist);
         atomDist = atom1.r + atom2.r;
       }
       const { closestBond, bonded } = getClosestBond(atom1, atom2);
-      if (!closestBond) continue;
+      if (!closestBond) {
+        const ljMagnitude = ljForce(atomDist, atom1, atom2);
+
+        atom1.applyForce(ljMagnitude, atomAngle);
+        atom2.applyForce(ljMagnitude, atomAngle + Math.PI);
+
+        continue;
+      }
 
       const electron1 = closestBond.bond1.parentElectron || closestBond.bond1;
       const electron2 = closestBond.bond2.parentElectron || closestBond.bond2;
 
       attractElectrons(electron1, electron2);
 
-      // make the morse force care about the distance between bonding electrons
+      const electronAngle1 = calcAngle(electron1.parentAtom, electron2);
+      const electronAngle2 = calcAngle(electron2.parentAtom, electron1);
 
-      const angle1 = calcAngle(electron1.parentAtom, electron2);
-      const angle2 = calcAngle(electron2.parentAtom, electron1);
+      const angleDiff1 = calcAngleDiff(electronAngle1 + Math.PI, electron2.angle % (2 * Math.PI));
+      const angleDiff2 = calcAngleDiff(electronAngle2 + Math.PI, electron1.angle % (2 * Math.PI));
+      const maxAngleDiff = Math.max(angleDiff1, angleDiff2);
 
-      const angleDiff1 = calcAngleDiff(angle1 + Math.PI, electron2.angle % (2 * Math.PI));
-      const angleDiff2 = calcAngleDiff(angle2 + Math.PI, electron1.angle % (2 * Math.PI));
-      const angleDiff = Math.max(angleDiff1, angleDiff2);
+      const { morseMagnitude, shouldBond } = morseForce(atom1, atom2, atomDist, closestBond.dist, maxAngleDiff);
 
-      const { force, shouldBond } = morseForce(atom1, atom2, atomDist, closestBond.dist, angleDiff);
-
-      atom1.applyForce(force, angle1);
-      atom2.applyForce(force, angle2);
+      atom1.applyForce(morseMagnitude, electronAngle1);
+      atom2.applyForce(morseMagnitude, electronAngle2);
 
       if (shouldBond && !bonded) {
         atom1.createBond(atom2, closestBond.bond1, closestBond.bond2);
         atom2.createBond(atom1, closestBond.bond2, closestBond.bond1);
       } else if (!shouldBond && bonded) {
-        if (!(closestBond.bond1 instanceof Bond) || !(closestBond.bond2 instanceof Bond))
-          console.log(closestBond);
         atom1.breakBond(closestBond.bond1);
         atom2.breakBond(closestBond.bond2);
       }
@@ -466,7 +517,7 @@ function calcAngleDiff(angle1, angle2) {
 
 function getBondPairs(atom1, atom2) {
   let bondPairs = [];
-  //If bond one or bond two is a lone pair, skip.
+  // If bond one or bond two is a lone pair, skip.
   for (let bond1 of atom1.bonds) {
     if (bond1 instanceof Electron && bond1.charge === 2) continue;
     for (let bond2 of atom2.bonds) {
@@ -494,10 +545,8 @@ function getClosestBond(atom1, atom2) {
       return { closestBond: bondPair, bonded: true };
     }
 
-    const dist1 =
-      bondPair.bond1 instanceof Bond ? calcDist(parentElectron1, bondedElectron1) : Infinity;
-    const dist2 =
-      bondPair.bond2 instanceof Bond ? calcDist(parentElectron2, bondedElectron2) : Infinity;
+    const dist1 = bondPair.bond1 instanceof Bond ? calcDist(parentElectron1, bondedElectron1) : Infinity;
+    const dist2 = bondPair.bond2 instanceof Bond ? calcDist(parentElectron2, bondedElectron2) : Infinity;
     const shouldBreakBonds = bondPair.dist < dist1 && bondPair.dist < dist2;
 
     if (shouldBreakBonds && bondPair.bond1 instanceof Bond) {
@@ -533,7 +582,7 @@ function drawFrame() {
   for (const atom of atoms) {
     atom.draw();
   }
-  catalogue.draw()
+  catalogue.draw();
 
   let totalKineticEnergy = 0;
   for (const atom of atoms) {
@@ -541,8 +590,33 @@ function drawFrame() {
   }
   kineticEnergyDisplay.innerHTML = Math.round(totalKineticEnergy / 10 ** 12);
 
-  if (mouse.state === "click") mouse.state = "down";
+  if (mouse.state === 'click') mouse.state = 'down';
 }
+
+function tabify(element) {
+  const header = element.querySelector('.tabs-header');
+  const content = element.querySelector('.tabs');
+  const tab_headers = [...header.children];
+  const tab_contents = [...content.children];
+  tab_contents.forEach((x) => (x.style.display = 'none'));
+  let current_tab_index = -1;
+
+  function setTab(index) {
+    if (current_tab_index > -1) {
+      tab_headers[current_tab_index].style.fontWeight = 400;
+      tab_contents[current_tab_index].style.display = 'none';
+    }
+    tab_headers[index].style.fontWeight = 800;
+    tab_contents[index].style.display = 'flex';
+    current_tab_index = index;
+  }
+  default_tab_index = 0;
+  setTab(default_tab_index);
+  tab_headers.forEach((x, i) => (x.onclick = (event) => setTab(i)));
+}
+
+// this is where the magic happens!
+[...document.querySelectorAll('.tabs-container')].forEach((x) => tabify(x));
 
 function loop(currentTime) {
   elapsedTime = (currentTime - lastTime) * simulationSpeed || 0;

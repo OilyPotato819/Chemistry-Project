@@ -1,0 +1,32 @@
+name: Update Website
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  update-website:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Copy website files
+        run: cp -r ./website/* ./temp
+
+      - name: Switch to website branch
+        run: git checkout website
+
+      - name: Add and commit changes
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git add .
+          git commit -m "Update website"
+        
+      - name: Push changes to website branch
+        uses: ad-m/github-push-action@master
+        with:
+          branch: website

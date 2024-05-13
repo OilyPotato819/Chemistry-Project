@@ -10,13 +10,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Copy website folder into website branch
+      - name: copy website folder into website branch
         run: |
+          files=$(find 'website')
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
           git fetch
           git checkout 'website'
-          git checkout main -- 'website'
+          git checkout 'main' -- $files
           git add -A
-          git diff-index --quiet HEAD || git commit -am
+          git diff-index --quiet HEAD ||  git commit -am "update website"
           git push origin 'website'

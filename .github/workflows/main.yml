@@ -18,6 +18,8 @@ jobs:
           git checkout 'website' --
           git rm -r .
           git checkout 'main' -- 'website'
+          mv website/* .
+          rm -r website
           git add -A
           git diff-index --quiet HEAD ||  git commit -am "update website"
           git push origin 'website'

@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "csv": "^6.3.8",
-    "papaparse": "^5.4.1"
-  }
-}

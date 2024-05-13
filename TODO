@@ -1,1 +1,0 @@
-Lennard Jones for force between bonded atom and other atoms (min + delta electronegativity * coeff)  dispersion energy = delta electronegativity, size = covalent radius

@@ -12,12 +12,12 @@ jobs:
       - uses: actions/checkout@v2
       - name: copy website folder into website branch
         run: |
-          files=$(find 'website')
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
           git fetch
-          git checkout 'website'
+          files=$(find 'website')
+          git checkout refs/heads/website
           git checkout 'main' -- $files
           git add -A
           git diff-index --quiet HEAD ||  git commit -am "update website"
-          git push origin 'website'
+          git push origin refs/heads/website

@@ -16,8 +16,8 @@ jobs:
           git config --global user.email 'action@github.com'
           git fetch
           files=$(find 'website')
-          git checkout refs/heads/website
+          git checkout 'website' --
           git checkout 'main' -- $files
           git add -A
           git diff-index --quiet HEAD ||  git commit -am "update website"
-          git push origin refs/heads/website
+          git push origin 'website'

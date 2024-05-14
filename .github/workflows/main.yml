@@ -21,5 +21,5 @@ jobs:
           mv website/* .
           rm -r website
           git add -A
-          git diff-index --quiet HEAD ||  git commit -am ${github.event.head_commit.message}
+          git diff-index --quiet HEAD ||  git commit -am "${{ github.event.head_commit.message }}"
           git push origin 'website'

@@ -353,13 +353,6 @@ let mouse = new Mouse();
 let container = new Container(0, cnv.width * (2 / 3), 0, cnv.height);
 let catalogue = new Catalogue(cnv.width * 0.7, 0, cnv.width * 0.3, cnv.height);
 
-// atoms.push(new Atom(900, 710, 0, 'H'));
-// atoms.push(new Atom(800, 720, 0, 'H'));
-// atoms.push(new Atom(400, 400, 0, 'H'));
-// atoms.push(new Atom(500, 350, 0, 'H'));
-// atoms.push(new Atom(600, 600, 0, 'C'));
-// atoms.push(new Atom(800, 500, 0, 'N'));
-
 randomAtoms(30, 300, ['H', 'O', 'C', 'N'], [6, 1, 1, 1]);
 
 // atoms.push(new Atom(400, 200, 0, 'H'));

@@ -119,10 +119,6 @@ class Atom {
     ctx.textBaseline = 'middle';
     ctx.font = this.font;
     ctx.fillText(this.symbol, this.x * scale, this.y * scale);
-
-    for (const bond of this.bonds) {
-      bond.draw();
-    }
   }
 }
 
@@ -175,12 +171,25 @@ class Bond {
     this.bondedElectron = bondedElectron;
   }
 
+  getMirrorBond() {
+    return this.bondedAtom.bonds[this.bondedElectron.index];
+  }
+
   update() {
     this.parentElectron.update();
   }
 
   draw() {
     this.parentElectron.draw();
+  }
+
+  drawConnection() {
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(this.parentElectron.x * scale, this.parentElectron.y * scale);
+    ctx.lineTo(this.bondedElectron.x * scale, this.bondedElectron.y * scale);
+    ctx.stroke();
   }
 }
 
@@ -312,7 +321,7 @@ class Catalogue {
         itemy += size.h;
       }
       pageMap.set(`page${i}`, pageArr);
-      console.log(pageMap);
+      // console.log(pageMap);
     }
     return pageMap;
   }
@@ -351,10 +360,11 @@ let catalogue = new Catalogue(cnv.width * 0.7, 0, cnv.width * 0.3, cnv.height);
 // atoms.push(new Atom(600, 600, 0, 'C'));
 // atoms.push(new Atom(800, 500, 0, 'N'));
 
-randomAtoms(20, 300, ['H', 'O', 'C', 'N'], [6, 1, 1, 1]);
+randomAtoms(30, 300, ['H', 'O', 'C', 'N'], [6, 1, 1, 1]);
 
-// atoms.push(new Atom(500, 500, 0, 'He'));
-// atoms.push(new Atom(700, 500, 0, 'He'));
+// atoms.push(new Atom(400, 200, 0, 'H'));
+// atoms.push(new Atom(500, 200, 0, 'H'));
+// atoms.push(new Atom(700, 400, 0, 'O'));
 
 document.addEventListener('mousemove', (event) => {
   mouse.update(event);
@@ -573,9 +583,9 @@ function getBondPairs(atom1, atom2) {
   let bondPairs = [];
   // If bond one or bond two is a lone pair, skip.
   for (let bond1 of atom1.bonds) {
-    if (bond1 instanceof Electron && bond1.charge === 2) continue;
+    if (bond1.charge === 2) continue;
     for (let bond2 of atom2.bonds) {
-      if (bond2 instanceof Electron && bond2.charge === 2) continue;
+      if (bond2.charge === 2) continue;
 
       const bondDist = calcDist(bond1.parentElectron || bond1, bond2.parentElectron || bond2);
       bondPairs.push({ bond1: bond1, bond2: bond2, dist: bondDist });
@@ -590,29 +600,31 @@ function getClosestBond(atom1, atom2) {
   const bondPairs = getBondPairs(atom1, atom2);
 
   for (const bondPair of bondPairs) {
-    const parentElectron1 = bondPair.bond1.parentElectron;
-    const parentElectron2 = bondPair.bond2.parentElectron;
-    const bondedElectron1 = bondPair.bond1.bondedElectron;
-    const bondedElectron2 = bondPair.bond2.parentElectron;
+    let bond1 = bondPair.bond1;
+    let bond2 = bondPair.bond2;
 
-    if (bondedElectron1 && bondedElectron1 === parentElectron2) {
+    if (bond1.bondedElectron && bond1.bondedElectron === bond2.parentElectron) {
       return { closestBond: bondPair, bonded: true };
     }
 
-    const dist1 = bondPair.bond1 instanceof Bond ? calcDist(parentElectron1, bondedElectron1) : Infinity;
-    const dist2 = bondPair.bond2 instanceof Bond ? calcDist(parentElectron2, bondedElectron2) : Infinity;
+    const dist1 = bond1 instanceof Bond ? calcDist(bond1.parentElectron, bond1.bondedElectron) : Infinity;
+    const dist2 = bond2 instanceof Bond ? calcDist(bond2.parentElectron, bond2.parentElectron) : Infinity;
     const shouldBreakBonds = bondPair.dist < dist1 && bondPair.dist < dist2;
 
-    if (shouldBreakBonds && bondPair.bond1 instanceof Bond) {
-      atom1.breakBond(bondPair.bond1);
-      bondPair.bond1 = parentElectron1;
+    if (shouldBreakBonds && bond1 instanceof Bond) {
+      atom1.breakBond(bond1);
+      bond1.bondedAtom.breakBond(bond1.getMirrorBond());
+
+      bondPair.bond1 = bond1 = bond1.parentElectron;
     }
-    if (shouldBreakBonds && bondPair.bond2 instanceof Bond) {
-      atom2.breakBond(bondPair.bond2);
-      bondPair.bond2 = parentElectron2;
+    if (shouldBreakBonds && bond2 instanceof Bond) {
+      atom2.breakBond(bond2);
+      bond2.bondedAtom.breakBond(bond2.getMirrorBond());
+
+      bondPair.bond2 = bond2 = bond2.parentElectron;
     }
 
-    if (bondPair.bond1 instanceof Electron && bondPair.bond2 instanceof Electron) {
+    if (bond1 instanceof Electron && bond2 instanceof Electron) {
       return { closestBond: bondPair, bonded: false };
     }
   }
@@ -633,9 +645,23 @@ function drawFrame() {
   ctx.clearRect(0, 0, cnv.width, cnv.height);
 
   container.draw();
+
   for (const atom of atoms) {
     atom.draw();
   }
+
+  for (const atom of atoms) {
+    for (const bond of atom.bonds) {
+      if (bond.drawConnection) bond.drawConnection();
+    }
+  }
+
+  for (const atom of atoms) {
+    for (const bond of atom.bonds) {
+      bond.draw();
+    }
+  }
+
   catalogue.draw();
 
   let totalKineticEnergy = 0;

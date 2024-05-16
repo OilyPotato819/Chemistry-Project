@@ -8,6 +8,11 @@ function changeShade(color, amount) {
   return hexString;
 }
 
+function principalAngle(angle) {
+  const positiveAngle = (angle % (2 * Math.PI)) + 2 * Math.PI;
+  return positiveAngle % (2 * Math.PI);
+}
+
 function calcAngle(obj1, obj2) {
   return Math.atan2(obj1.y - obj2.y, obj1.x - obj2.x);
 }
@@ -24,4 +29,8 @@ function kineticEnergy(mass, velocity) {
   return (mass * velocity ** 2) / 2;
 }
 
-export { changeShade, calcAngle, calcDist, decomposeForce, kineticEnergy };
+function easeInOutCubic(x) {
+  return x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2;
+}
+
+export { changeShade, principalAngle, calcAngle, calcDist, decomposeForce, kineticEnergy, easeInOutCubic };

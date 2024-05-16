@@ -1,6 +1,6 @@
-import { calcAngle, calcDist } from './utils.js';
+import { calcAngle, calcDist, principalAngle } from './utils.js';
 
-function calcForces(atoms, forces, collision, elapsedTime) {
+function calcForces(atoms, forces, collision, elapsedTime, minAngleDiff) {
   for (let i = 0; i < atoms.length - 1; i++) {
     for (let j = i + 1; j < atoms.length; j++) {
       const atom1 = atoms[i];
@@ -31,11 +31,9 @@ function calcForces(atoms, forces, collision, elapsedTime) {
       const electronAngle1 = calcAngle(electron1.parentAtom, electron2);
       const electronAngle2 = calcAngle(electron2.parentAtom, electron1);
 
-      const angleDiff1 = calcAngleDiff(electronAngle1 + Math.PI, electron2.angle % (2 * Math.PI));
-      const angleDiff2 = calcAngleDiff(electronAngle2 + Math.PI, electron1.angle % (2 * Math.PI));
-      const maxAngleDiff = Math.max(angleDiff1, angleDiff2);
+      const angleDiff = calcAngleDiff(atomAngle, electron1.angle, electron2.angle);
 
-      const { morseMagnitude, shouldBond } = forces.morse(atom1, atom2, atomDist, closestBond.dist, maxAngleDiff);
+      const { morseMagnitude, shouldBond } = forces.morse(atom1, atom2, atomDist, closestBond.dist, angleDiff);
 
       atom1.applyForce(morseMagnitude, electronAngle1, elapsedTime);
       atom2.applyForce(morseMagnitude, electronAngle2, elapsedTime);
@@ -121,9 +119,14 @@ function attractElectrons(electron1, electron2, forces, elapsedTime) {
   electron2.applyTorque(force2, angle2, elapsedTime);
 }
 
-function calcAngleDiff(angle1, angle2) {
-  const angleDiff = Math.min(Math.abs(angle1 - angle2), 2 * Math.PI - Math.abs(angle1 - angle2));
-  return 1 + (angleDiff / Math.PI) * (1.15 - 1);
+function calcAngleDiff(atomAngle, angle1, angle2) {
+  const angleDiff1 = Math.abs(principalAngle(atomAngle + Math.PI) - principalAngle(angle1));
+  const angleDiff2 = Math.abs(principalAngle(atomAngle) - principalAngle(angle2));
+
+  const maxAngleDiff1 = Math.min(angleDiff1, 2 * Math.PI - angleDiff1);
+  const maxAngleDiff2 = Math.min(angleDiff2, 2 * Math.PI - angleDiff2);
+
+  return maxAngleDiff1 + maxAngleDiff2;
 }
 
 export { calcForces };

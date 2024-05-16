@@ -1,12 +1,14 @@
 import { getBondInfo } from '../functions/bond-info.js';
+import { easeInOutCubic } from '../functions/utils.js';
 
 class Forces {
-  constructor(coulomb, sizeFactor, dispersionFactor, vibFreq, maxRepulsion) {
-    this.coulomb = coulomb;
-    this.sizeFactor = sizeFactor;
-    this.dispersionFactor = dispersionFactor;
-    this.vibFreq = vibFreq;
-    this.maxRepulsion = maxRepulsion;
+  constructor(simParams) {
+    this.coulomb = simParams.coulomb;
+    this.sizeFactor = simParams.sizeFactor;
+    this.dispersionFactor = simParams.dispersionFactor;
+    this.vibFreq = simParams.vibFreq;
+    this.maxRepulsion = simParams.maxRepulsion;
+    this.minBdeFactor = simParams.minBdeFactor;
   }
 
   electrostatic(charge1, charge2, dist) {
@@ -23,7 +25,8 @@ class Forces {
   }
 
   morse(atom1, atom2, atomDist, electronDist, angleDiff) {
-    const { bde, radiiSum } = getBondInfo(atom1, atom2);
+    let { bde, radiiSum } = getBondInfo(atom1, atom2);
+    bde *= this.calcBdeFactor(angleDiff);
 
     const reducedMass = (atom1.atomicMass * atom2.atomicMass) / (atom1.atomicMass + atom2.atomicMass);
 
@@ -32,7 +35,6 @@ class Forces {
 
     const naturalLog = Math.log(0.5 + Math.sqrt(this.maxRepulsion / (2 * a * bde) + 0.25));
     let bondLength = naturalLog / a + radiiSum;
-    bondLength *= angleDiff;
 
     const naturalBase = Math.E ** (-a * (atomDist - bondLength));
     const magnitude = 2 * bde * a * naturalBase * (naturalBase - 1);
@@ -40,6 +42,12 @@ class Forces {
     const shouldBond = electronDist < Math.log(2) / a + bondLength;
 
     return { morseMagnitude: magnitude, shouldBond: shouldBond };
+  }
+
+  calcBdeFactor(angleDiff) {
+    const normAngleDiff = (2 * Math.PI - angleDiff) / (2 * Math.PI);
+    const easedAngleDiff = easeInOutCubic(normAngleDiff);
+    return (1 - this.minBdeFactor) * easedAngleDiff + this.minBdeFactor;
   }
 }
 

@@ -4,7 +4,7 @@ import { Electron } from './electron.js';
 import { changeShade, decomposeForce } from '../../functions/utils.js';
 
 class Atom {
-  constructor(x, y, speed, symbol, container, simParams) {
+  constructor(x, y, speed, symbol, simulation) {
     this.x = x;
     this.y = y;
 
@@ -20,11 +20,11 @@ class Atom {
     //atom radius = covalent radius
     this.r = this.covalentRadius;
     this.bonds = [];
-    this.friction = simParams.atomFriction;
-    this.electrostaticForce = simParams.forces.electrostatic.bind(simParams.forces);
-    this.container = container;
+    this.friction = simulation.atomFriction;
+    this.electrostaticForce = simulation.forces.electrostatic.bind(simulation.forces);
+    this.container = simulation.container;
 
-    this.font = `${this.r * simParams.scale * 0.7}px sans-serif`;
+    this.font = `${this.r * simulation.scale * 0.7}px sans-serif`;
     this.borderColor = changeShade(this.color, 10);
 
     const bondNum = this.valency + this.lonePairs;
@@ -33,7 +33,7 @@ class Atom {
       //charge for lone pair is 2, charge for free electron is 1
       const charge = i < this.lonePairs ? 2 : 1;
       //pushes electrons to bond array
-      this.bonds.push(new Electron(this, angle, charge, i, this.color, simParams));
+      this.bonds.push(new Electron(this, angle, charge, i, this.color, simulation.electronFriction));
     }
   }
 

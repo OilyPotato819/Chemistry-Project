@@ -1,7 +1,7 @@
 import { changeShade } from '../../functions/utils.js';
 
 class Electron {
-  constructor(parentAtom, angle, charge, index, parentColor, simParams) {
+  constructor(parentAtom, angle, charge, index, parentColor, friction) {
     this.parentAtom = parentAtom;
     this.atomRadius = parentAtom.r;
     this.angle = angle;
@@ -10,7 +10,7 @@ class Electron {
     this.charge = charge;
     this.index = index;
     this.type = 'electron';
-    this.friction = simParams.electronFriction;
+    this.friction = friction;
 
     const shadeSign = this.charge === 1 ? 1 : -1;
     this.color = changeShade(parentColor, shadeSign * 30);

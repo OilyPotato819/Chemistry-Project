@@ -17,10 +17,13 @@ class Forces {
 
   lj(dist, atom1, atom2) {
     // Lorentz-Berthelot rules
-    const size = this.sizeFactor * ((atom1.r + atom2.r) / 2);
     const dispersion = this.dispersionFactor * Math.sqrt(atom1.polarizability * atom2.polarizability);
 
+    const sizeFactor = this.calcSizeFactor(atom1.r, atom2.r, dispersion);
+    const size = sizeFactor * ((atom1.r + atom2.r) / 2);
+
     const ljMagnitude = 24 * dispersion * ((2 * size ** 12) / dist ** 13 - size ** 6 / dist ** 7);
+    if (ljMagnitude > 100) console.log(ljMagnitude);
     return ljMagnitude;
   }
 
@@ -48,6 +51,12 @@ class Forces {
     const normAngleDiff = (2 * Math.PI - angleDiff) / (2 * Math.PI);
     const easedAngleDiff = easeInOutCubic(normAngleDiff);
     return (1 - this.minBdeFactor) * easedAngleDiff + this.minBdeFactor;
+  }
+
+  calcSizeFactor(r1, r2, dispersion) {
+    const fraction = (this.maxRepulsion * (r1 + r2)) / (3 * dispersion);
+    const squareRoot = Math.sqrt(1 + fraction);
+    return (16 + 16 * squareRoot) ** (1 / 6);
   }
 }
 

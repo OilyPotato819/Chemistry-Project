@@ -14,20 +14,20 @@ let kineticEnergyDisplay = document.getElementById('ke');
 let simParams = {
   speed: 0.01,
   scale: 0.5,
-  atomFriction: 0.999,
-  electronFriction: 0.99,
-  coulomb: 10000,
-  sizeFactor: 3,
+  atomFriction: 1,
+  electronFriction: 0.95,
+  coulomb: 5000,
+  sizeFactor: 2,
   dispersionFactor: 10,
   vibFreq: 0.1,
   maxRepulsion: 50,
-  minBdeFactor: 0.1,
+  minBdeFactor: 0.01,
   cor: 0.5,
 };
 
 const mouse = new Mouse();
-let catalogue = new Catalogue(cnv.width * 0.7, 0, cnv.width * 0.3, cnv.height);
-// const catalogue = new Catalogue(cnv.width, cnv.height, 0, 0);
+// let catalogue = new Catalogue(cnv.width * 0.7, 0, cnv.width * 0.3, cnv.height);
+const catalogue = new Catalogue(cnv.width, cnv.height, 0, 0);
 // let container = new Container(0, cnv.width * (2 / 3), 0, cnv.height, mouse, catalogue);
 const container = new Container(0, cnv.width, 0, cnv.height, mouse, catalogue, simParams.scale);
 

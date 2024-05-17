@@ -23,11 +23,12 @@ class Simulation {
     this.lastTime = 0;
     this.elapsedTime = 0;
 
-    // this.atoms.push(new Atom(700, 400, 0, 'C', this));
-    // this.atoms.push(new Atom(900, 400, 0, 'H', this));
-    // this.atoms.push(new Atom(400, 400, 0, 'H', this));
+    this.atoms.push(new Atom(900, 280, 0, 'H', this, Math.PI / 2));
+    this.atoms.push(new Atom(900, 370, 0, 'H', this, (3 / 2) * Math.PI));
+    this.atoms.push(new Atom(850, 450, 0, 'H', this, 0));
+    this.atoms.push(new Atom(950, 450, 0, 'H', this, 3));
 
-    this.randomAtoms(100, 150, ['H', 'O', 'C', 'N'], [6, 1, 1, 1]);
+    // this.randomAtoms(100, 150, ['H', 'O', 'C', 'N'], [6, 1, 1, 1]);
 
     this.createEventListeners();
   }
@@ -65,7 +66,7 @@ class Simulation {
 
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
-        this.lastTime = undefined;
+        this.lastTime = 0;
       }
     });
   }
@@ -73,7 +74,7 @@ class Simulation {
   update() {
     this.container.update(this.scale);
 
-    calcForces(this.atoms, this.forces, this.collision, this.elapsedTime);
+    calcForces(this.atoms, this.forces, this.elapsedTime, this.collision);
     for (const atom of this.atoms) {
       atom.update(this.elapsedTime);
     }
@@ -112,7 +113,7 @@ class Simulation {
   }
 
   loop(currentTime) {
-    this.elapsedTime = (currentTime - this.lastTime) * this.speed || 0;
+    this.elapsedTime = this.lastTime === 0 ? 0 : (currentTime - this.lastTime) * this.speed;
     this.lastTime = currentTime;
 
     this.update();

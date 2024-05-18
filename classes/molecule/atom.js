@@ -33,7 +33,7 @@ class Atom {
       //charge for lone pair is 2, charge for free electron is 1
       const charge = i < this.lonePairs ? 2 : 1;
       //pushes electrons to bond array
-      this.bonds.push(new Electron(this, angle, charge, i, this.color, simulation.electronFriction));
+      this.bonds.push(new Electron(this, angle, charge, i, this.color, simulation));
     }
   }
 

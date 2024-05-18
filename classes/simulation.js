@@ -1,7 +1,7 @@
 import { Atom } from './molecule/atom.js';
 import { Forces } from './forces.js';
 import { Collision } from './collision.js';
-import { calcForces } from '../functions/bonds.js';
+import { calcForces } from '../functions/calc-forces.js';
 
 class Simulation {
   constructor(simParams, cnv, mouse, catalogue, container) {
@@ -9,6 +9,7 @@ class Simulation {
     this.scale = simParams.scale;
     this.atomFriction = simParams.atomFriction;
     this.electronFriction = simParams.electronFriction;
+    this.bondCooldown = simParams.bondCooldown;
 
     this.forces = new Forces(simParams);
     this.collision = new Collision(simParams.cor);

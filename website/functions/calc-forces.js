@@ -2,15 +2,16 @@ import { calcAngle, calcDist, principalAngle } from './utils.js';
 
 function calcForces(atoms, forces, elapsedTime, collision) {
   let electronPairs = [];
+  let previousBonds = [];
 
-  for (const atom of atoms) {
-    breakAllBonds(atom);
-  }
+  breakAllBonds(atoms[0], previousBonds);
 
   for (let i = 0; i < atoms.length - 1; i++) {
     for (let j = i + 1; j < atoms.length; j++) {
       const atom1 = atoms[i];
       const atom2 = atoms[j];
+
+      if (i === 0) breakAllBonds(atom2, previousBonds);
 
       const atomAngle = calcAngle(atom1, atom2);
       let atomDist = calcDist(atom1, atom2);
@@ -20,7 +21,7 @@ function calcForces(atoms, forces, elapsedTime, collision) {
         atomDist = atom1.r + atom2.r;
       }
 
-      const hasPairs = addElectronPairs(atom1, atom2, atomAngle, atomDist, electronPairs);
+      const hasPairs = addElectronPairs(atom1, atom2, previousBonds[i], atomAngle, atomDist, electronPairs);
       if (hasPairs) continue;
 
       const ljMagnitude = forces.lj(atomDist, atom1, atom2);
@@ -35,13 +36,9 @@ function calcForces(atoms, forces, elapsedTime, collision) {
 }
 
 function updateElectronPair(electronPair, forces, elapsedTime) {
-  const electron1 = electronPair.electron1;
-  const electron2 = electronPair.electron2;
+  const { electron1, electron2, electronDist, atomAngle, atomDist } = electronPair;
   const atom1 = electron1.parentAtom;
   const atom2 = electron2.parentAtom;
-  const electronDist = electronPair.electronDist;
-  const atomAngle = electronPair.atomAngle;
-  const atomDist = electronPair.atomDist;
 
   attractElectrons(electron1, electron2, forces, elapsedTime);
 
@@ -58,9 +55,14 @@ function updateElectronPair(electronPair, forces, elapsedTime) {
   atom1.applyForce(morseMagnitude, morseAngle1, elapsedTime);
   atom2.applyForce(morseMagnitude, morseAngle2, elapsedTime);
 
+  electron1.bondTimer -= elapsedTime;
+  electron2.bondTimer -= elapsedTime;
+
   if (shouldBond) {
     atom1.createBond(atom2, electron1, electron2);
     atom2.createBond(atom1, electron2, electron1);
+    electron1.bondTimer = electron1.bondCooldown;
+    electron2.bondTimer = electron2.bondCooldown;
   }
 }
 
@@ -79,7 +81,7 @@ function sortElectronPairs(electronPairs) {
   return uniquePairs;
 }
 
-function addElectronPairs(atom1, atom2, atomAngle, atomDist, array) {
+function addElectronPairs(atom1, atom2, bonds1, atomAngle, atomDist, electronPairs) {
   // If bond one or bond two is a lone pair, skip.
   let hasPairs = false;
 
@@ -89,7 +91,17 @@ function addElectronPairs(atom1, atom2, atomAngle, atomDist, array) {
       if (electron2.charge === 2) continue;
 
       const electronDist = calcDist(electron1, electron2);
-      array.push({ electron1: electron1, electron2: electron2, electronDist: electronDist, atomAngle: atomAngle, atomDist: atomDist });
+      const bonded = bonds1[electron1.index].bondedElectron === electron2;
+
+      electronPairs.push({
+        electron1: electron1,
+        electron2: electron2,
+        electronDist: electronDist,
+        atomAngle: atomAngle,
+        atomDist: atomDist,
+        bonded: bonded,
+      });
+
       hasPairs = true;
     }
   }
@@ -124,7 +136,9 @@ function calcAngleDiff(atomAngle, angle1, angle2) {
   return maxAngleDiff1 + maxAngleDiff2;
 }
 
-function breakAllBonds(atom) {
+function breakAllBonds(atom, previousBonds) {
+  previousBonds.push([...atom.bonds]);
+
   for (let i = 0; i < atom.bonds.length; i++) {
     const bond = atom.bonds[i];
     if (bond.charge === 2 || bond.type === 'electron') continue;

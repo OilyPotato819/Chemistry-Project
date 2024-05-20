@@ -2,6 +2,7 @@ import { Atom } from './molecule/atom.js';
 import { Forces } from './forces.js';
 import { Collision } from './collision.js';
 import { calcForces } from '../functions/calc-forces.js';
+import { getFormulas } from '../functions/get-formulas.js';
 
 class Simulation {
   constructor(simParams, cnv, mouse, catalogue, container) {
@@ -25,11 +26,11 @@ class Simulation {
     this.elapsedTime = 0;
 
     this.atoms.push(new Atom(900, 280, 0, 'H', this, Math.PI / 2));
-    this.atoms.push(new Atom(900, 370, 0, 'H', this, (3 / 2) * Math.PI));
-    this.atoms.push(new Atom(850, 450, 0, 'H', this, 0));
-    this.atoms.push(new Atom(950, 450, 0, 'H', this, 3));
+    this.atoms.push(new Atom(300, 370, 0, 'C', this, (3 / 2) * Math.PI));
+    // this.atoms.push(new Atom(850, 1000, 0, 'O', this, 0));
+    // this.atoms.push(new Atom(950, 450, 0, 'H', this, 3));
 
-    // this.randomAtoms(100, 150, ['H', 'O', 'C', 'N'], [6, 1, 1, 1]);
+    // this.randomAtoms(2, 150, ['H', 'O', 'C', 'N'], [6, 1, 1, 1]);
 
     this.createEventListeners();
   }
@@ -114,6 +115,7 @@ class Simulation {
   }
 
   loop(currentTime) {
+    getFormulas(this.atoms);
     this.elapsedTime = this.lastTime === 0 ? 0 : (currentTime - this.lastTime) * this.speed;
     this.lastTime = currentTime;
 

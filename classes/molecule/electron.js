@@ -13,7 +13,7 @@ class Electron {
     this.friction = simulation.electronFriction;
 
     this.bondCooldown = simulation.bondCooldown * simulation.speed;
-    this.bondTimer = this.bondCooldown;
+    this.bondTimer = 0;
 
     const shadeSign = this.charge === 1 ? 1 : -1;
     this.color = changeShade(parentColor, shadeSign * 30);

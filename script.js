@@ -16,7 +16,7 @@ let simParams = {
   scale: 0.5,
   atomFriction: 1,
   electronFriction: 0.95,
-  bondCooldown: 20,
+  bondCooldown: 300,
   coulomb: 5000,
   sizeFactor: 2,
   dispersionFactor: 10,

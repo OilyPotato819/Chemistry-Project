@@ -20,10 +20,11 @@ class Atom {
     //atom radius = covalent radius
     this.r = this.covalentRadius;
     this.bonds = [];
+    this.previousBonds = [];
     this.friction = simulation.atomFriction;
     this.electrostaticForce = simulation.forces.electrostatic.bind(simulation.forces);
     this.container = simulation.container;
-
+    this.checked = false;
     this.font = `${this.r * simulation.scale * 0.7}px sans-serif`;
     this.borderColor = changeShade(this.color, 10);
 
@@ -96,8 +97,8 @@ class Atom {
     electron2.applyTorque(force, angle2, elapsedTime);
   }
 
-  createBond(atom, parentElectron, bondedElectron) {
-    this.bonds[parentElectron.index] = new Bond(this, atom, parentElectron, bondedElectron);
+  createBond(parentElectron, bondedAtom, bondedElectron) {
+    this.bonds[parentElectron.index] = new Bond(this, bondedAtom, parentElectron, bondedElectron);
   }
 
   breakBond(bond) {

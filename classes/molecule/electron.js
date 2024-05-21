@@ -9,13 +9,13 @@ class Electron {
     this.angularVelocity = 0;
     this.charge = charge;
     this.index = index;
-    this.type = 'electron';
+    this.type = charge === 1 ? 'single' : 'double';
     this.friction = simulation.electronFriction;
 
     this.bondCooldown = simulation.bondCooldown * simulation.speed;
     this.bondTimer = 0;
 
-    const shadeSign = this.charge === 1 ? 1 : -1;
+    const shadeSign = charge === 1 ? 1 : -1;
     this.color = changeShade(parentColor, shadeSign * 30);
   }
 

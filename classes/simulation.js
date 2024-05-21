@@ -25,12 +25,13 @@ class Simulation {
     this.lastTime = 0;
     this.elapsedTime = 0;
 
-    this.atoms.push(new Atom(900, 280, 0, 'H', this, Math.PI / 2));
-    this.atoms.push(new Atom(300, 370, 0, 'C', this, (3 / 2) * Math.PI));
+    // this.atoms.push(new Atom(750, 300, 0, 'H', this));
+    // this.atoms.push(new Atom(900, 300, 0, 'O', this));
+    // this.atoms.push(new Atom(660, 380, 0, 'C', this));
     // this.atoms.push(new Atom(850, 1000, 0, 'O', this, 0));
     // this.atoms.push(new Atom(950, 450, 0, 'H', this, 3));
 
-    // this.randomAtoms(2, 150, ['H', 'O', 'C', 'N'], [6, 1, 1, 1]);
+    this.randomAtoms(50, 150, ['H', 'O', 'C', 'N'], [6, 1, 1, 1]);
 
     this.createEventListeners();
   }

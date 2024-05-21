@@ -17,7 +17,7 @@ let simParams = {
   atomFriction: 1,
   electronFriction: 0.95,
   bondCooldown: 300,
-  coulomb: 5000,
+  coulomb: 10000,
   sizeFactor: 2,
   dispersionFactor: 10,
   vibFreq: 0.1,

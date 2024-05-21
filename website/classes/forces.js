@@ -23,7 +23,7 @@ class Forces {
     const size = sizeFactor * ((atom1.r + atom2.r) / 2);
 
     const ljMagnitude = 24 * dispersion * ((2 * size ** 12) / dist ** 13 - size ** 6 / dist ** 7);
-    if (ljMagnitude > 100) console.log(ljMagnitude);
+
     return ljMagnitude;
   }
 

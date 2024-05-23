@@ -10,14 +10,16 @@ for (const bond of bondData) {
   const bondString = bond.name.split(/-|=|≡/).sort().toString().replace(',', bondType);
   bondDataString += `['${bondString}', ${bond.energy}],`;
 }
-fs.writeFileSync(`${outputDirectory}/bond-data.js`, `${bondDataString}])`);
+bondDataString += '])\n\nexport { bondData };';
+fs.writeFileSync(`${outputDirectory}/bond-data.js`, bondDataString);
 
 let elementData = parseCSV('./csv/elements.csv', 'utf8');
 let elementDataString = 'let elementData = new Map([';
 for (const element of elementData) {
   elementDataString += `['${element.symbol}', ${JSON.stringify(fixProperties(element))}],`;
 }
-fs.writeFileSync(`${outputDirectory}/element-data.js`, `${elementDataString}])`);
+elementDataString += '])\n\nexport { elementData };';
+fs.writeFileSync(`${outputDirectory}/element-data.js`, elementDataString);
 
 function fixProperties(object) {
   for (const property in object) {

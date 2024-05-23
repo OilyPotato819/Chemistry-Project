@@ -8,11 +8,11 @@ class Atom {
     this.x = x;
     this.y = y;
 
-    //random initial velocity
+    // random initial velocity
     this.vx = Math.random() * speed * 2 - speed;
     this.vy = Math.random() * speed * 2 - speed;
 
-    //copies properties from element data (covalentRadius, electronegativity ...) into Atom object
+    // copies properties from element data (covalentRadius, electronegativity ...) into Atom object
     // valency = number of lone electrons that are free to bond
     // lonepairs = electron pairs that won't bond
     Object.assign(this, elementData.get(symbol));
@@ -22,6 +22,7 @@ class Atom {
 
     this.bonds = [];
     this.previousBonds = [];
+    this.charge = 0;
 
     this.friction = simulation.atomFriction;
     this.electrostaticForce = simulation.forces.electrostatic.bind(simulation.forces);
@@ -48,18 +49,6 @@ class Atom {
     this.vx *= this.friction;
     this.vy *= this.friction;
 
-    for (let i = 0; i < this.bonds.length - 1; i++) {
-      for (let j = i + 1; j < this.bonds.length; j++) {
-        const electron1 = this.bonds[i].parentElectron || this.bonds[i];
-        const electron2 = this.bonds[j].parentElectron || this.bonds[j];
-        this.repulseElectrons(electron1, electron2, elapsedTime);
-      }
-    }
-
-    for (const bond of this.bonds) {
-      bond.update(elapsedTime);
-    }
-
     if (this.x - this.r < this.container.scaledPos.left) {
       this.x = this.container.scaledPos.left + this.r;
       this.vx = Math.abs(this.vx) + this.container.velocity.left;
@@ -74,6 +63,18 @@ class Atom {
     } else if (this.y + this.r > this.container.scaledPos.bottom) {
       this.y = this.container.scaledPos.bottom - this.r;
       this.vy = -Math.abs(this.vy) + this.container.velocity.bottom;
+    }
+
+    for (let i = 0; i < this.bonds.length - 1; i++) {
+      for (let j = i + 1; j < this.bonds.length; j++) {
+        const electron1 = this.bonds[i].parentElectron || this.bonds[i];
+        const electron2 = this.bonds[j].parentElectron || this.bonds[j];
+        this.repulseElectrons(electron1, electron2, elapsedTime);
+      }
+    }
+
+    for (const bond of this.bonds) {
+      bond.update(elapsedTime);
     }
   }
 

@@ -1,15 +1,15 @@
-import { Catalogue } from "./classes/ui/catalogue.js";
-import { Container } from "./classes/ui/container.js";
-import { Mouse } from "./classes/ui/mouse.js";
-import { Simulation } from "./classes/simulation.js";
-import { kineticEnergy } from "./functions/utils.js";
-import { elementData } from "./data/element-data.js";
+import { Catalogue } from './classes/ui/catalogue.js';
+import { Container } from './classes/ui/container.js';
+import { Mouse } from './classes/ui/mouse.js';
+import { Simulation } from './classes/simulation.js';
+import { kineticEnergy } from './functions/utils.js';
+import { elementData } from './data/element-data.js';
 
-let cnv = document.getElementById("canvas");
+let cnv = document.getElementById('canvas');
 
-let periodicTable = document.getElementById("periodic_table");
+let periodicTable = document.getElementById('periodic_table');
 
-let containerEl = document.getElementById("container");
+let containerEl = document.getElementById('container');
 
 function resizeCanvas() {
   const containerHeight = containerEl.clientHeight;
@@ -23,12 +23,12 @@ function resizeCanvas() {
 resizeCanvas();
 
 // Resize canvas whenever the window is resized
-window.addEventListener("resize", resizeCanvas);
+window.addEventListener('resize', resizeCanvas);
 
-periodicTable.children[0].addEventListener("click", function (event) {
+periodicTable.children[0].addEventListener('click', function (event) {
   console.log(event.target.innerHTML);
 });
-periodicTable.children[1].addEventListener("click", function (event) {
+periodicTable.children[1].addEventListener('click', function (event) {
   console.log(event.target.innerHTML);
 });
 
@@ -38,13 +38,11 @@ const periodicTableDivs = Array.prototype.slice
 
 for (let i = 0; i < periodicTableDivs.length; i++) {
   for (let j = 0; j < periodicTableDivs[i].children.length; j++) {
-    periodicTableDivs[i].children[j].style.backgroundColor = elementData.get(
-      periodicTableDivs[i].children[j].innerHTML
-    ).color;
+    periodicTableDivs[i].children[j].style.backgroundColor = elementData.get(periodicTableDivs[i].children[j].innerHTML).color;
   }
 }
 
-let kineticEnergyDisplay = document.getElementById("ke");
+let kineticEnergyDisplay = document.getElementById('ke');
 
 let simParams = {
   speed: 0.01,
@@ -53,12 +51,12 @@ let simParams = {
   electronFriction: 0.95,
   bondCooldown: 300,
   coulomb: 10000,
-  sizeFactor: 2,
-  dispersionFactor: 5,
+  dispersionFactor: 3,
   vibFreq: 0.1,
   maxRepulsion: 50,
   minBdeFactor: 0.01,
-  unbondedFactor: 0,
+  unbondedFactor: 0.1,
+  electronegativityFactor: 10,
   cor: 0.5,
 };
 

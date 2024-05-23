@@ -4,7 +4,8 @@
   box-sizing: border-box;
 }
 
-body, html {
+body,
+html {
   background-color: #313338;
   font-family: sans-serif;
   text-align: center;
@@ -21,27 +22,30 @@ body, html {
   background-color: rgb(175, 175, 175);
   flex: 0 0 35%;
   padding-top: 50px;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 #periodic_table > div {
-    margin-bottom: 3%;
+  margin-bottom: 3%;
 }
 
 #periodic_table > div > div {
-	width: 5.5%;
-	display: inline-block;
-	margin-right: -7px;
+  width: 5.5%;
+  display: inline-block;
+  margin-right: -7px;
 }
 
 #periodic_table > div > div > div {
-    border: 3px solid black;
-    -webkit-box-sizing: border-box;
-    -moz-box-sizing: border-box;
-    box-sizing: border-box;
-    text-align: center;
-    /* background: red; */
-    margin-top: -3px;
-    padding: 20% 0;
+  border: 3px solid black;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  text-align: center;
+  /* background: red; */
+  margin-top: -3px;
+  padding: 20% 0;
 }
 
 canvas {

@@ -11,6 +11,7 @@ class Simulation {
     this.atomFriction = simParams.atomFriction;
     this.electronFriction = simParams.electronFriction;
     this.bondCooldown = simParams.bondCooldown;
+    this.electronegativityFactor = simParams.electronegativityFactor;
 
     this.forces = new Forces(simParams);
     this.collision = new Collision(simParams.cor);
@@ -25,9 +26,10 @@ class Simulation {
     this.lastTime = 0;
     this.elapsedTime = 0;
 
-    // this.atoms.push(new Atom(700, 300, 0, 'C', this, 0));
-    // this.atoms.push(new Atom(800, 300, 0, 'H', this, Math.PI));
-    // this.atoms.push(new Atom(700, 500, 0, 'H', this, Math.PI));
+    this.atoms.push(new Atom(700, 300, 0, 'C', this, 0));
+    this.atoms.push(new Atom(700, 450, 0, 'H', this, Math.PI));
+    this.atoms.push(new Atom(700, 600, 0, 'H', this, Math.PI));
+    this.atoms.push(new Atom(500, 600, 0, 'Na', this, Math.PI));
     // this.atoms.push(new Atom(725, 600, 0, 'H', this, 0));
 
     // this.atoms.push(new Atom(600, 300, 0, 'C', this, 0));
@@ -79,7 +81,7 @@ class Simulation {
   update() {
     this.container.update(this.scale);
 
-    calcForces(this.atoms, this.forces, this.elapsedTime, this.collision);
+    calcForces(this);
     for (const atom of this.atoms) {
       atom.update(this.elapsedTime);
     }

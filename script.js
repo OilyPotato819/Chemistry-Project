@@ -54,10 +54,11 @@ let simParams = {
   bondCooldown: 300,
   coulomb: 10000,
   sizeFactor: 2,
-  dispersionFactor: 10,
+  dispersionFactor: 5,
   vibFreq: 0.1,
   maxRepulsion: 50,
   minBdeFactor: 0.01,
+  unbondedFactor: 0,
   cor: 0.5,
 };
 

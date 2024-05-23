@@ -1,11 +1,11 @@
-import { Atom } from './molecule/atom.js';
-import { Forces } from './forces.js';
-import { Collision } from './collision.js';
-import { calcForces } from '../functions/calc-forces.js';
-import { getFormulas } from '../functions/get-formulas.js';
+import { Atom } from "./molecule/atom.js";
+import { Forces } from "./forces.js";
+import { Collision } from "./collision.js";
+import { calcForces } from "../functions/calc-forces.js";
+import { getFormulas } from "../functions/get-formulas.js";
 
 class Simulation {
-  constructor(simParams, cnv, mouse, catalogue, container) {
+  constructor(simParams, cnv, mouse, container) {
     this.speed = simParams.speed;
     this.scale = simParams.scale;
     this.atomFriction = simParams.atomFriction;
@@ -16,12 +16,12 @@ class Simulation {
     this.collision = new Collision(simParams.cor);
 
     this.mouse = mouse;
-    this.catalogue = catalogue;
+    // this.catalogue = catalogue;
     this.container = container;
 
     this.atoms = [];
     this.cnv = cnv;
-    this.ctx = cnv.getContext('2d');
+    this.ctx = cnv.getContext("2d");
     this.lastTime = 0;
     this.elapsedTime = 0;
 
@@ -29,9 +29,9 @@ class Simulation {
     // this.atoms.push(new Atom(900, 300, 0, 'O', this));
     // this.atoms.push(new Atom(660, 380, 0, 'C', this));
     // this.atoms.push(new Atom(850, 1000, 0, 'O', this, 0));
-    // this.atoms.push(new Atom(950, 450, 0, 'H', this, 3));
+    this.atoms.push(new Atom(950, 450, 0, "I", this, 3));
 
-    this.randomAtoms(50, 150, ['H', 'O', 'C', 'N'], [6, 1, 1, 1]);
+    // this.randomAtoms(50, 150, ['H', 'O', 'C', 'N'], [6, 1, 1, 1]);
 
     this.createEventListeners();
   }
@@ -55,20 +55,20 @@ class Simulation {
   }
 
   createEventListeners() {
-    document.addEventListener('mousemove', (event) => {
+    document.addEventListener("mousemove", (event) => {
       this.mouse.update(event);
     });
 
-    document.addEventListener('mousedown', () => {
-      this.mouse.state = 'click';
+    document.addEventListener("mousedown", () => {
+      this.mouse.state = "click";
     });
 
-    document.addEventListener('mouseup', () => {
-      this.mouse.state = 'up';
+    document.addEventListener("mouseup", () => {
+      this.mouse.state = "up";
     });
 
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") {
         this.lastTime = 0;
       }
     });
@@ -104,7 +104,7 @@ class Simulation {
       }
     }
 
-    this.catalogue.draw(this.ctx);
+    // this.catalogue.draw(this.ctx);
 
     // let totalKineticEnergy = 0;
     // for (const atom of this.atoms) {
@@ -112,7 +112,7 @@ class Simulation {
     // }
     // kineticEnergyDisplay.innerHTML = Math.round(totalKineticEnergy / 10 ** 12);
 
-    if (this.mouse.state === 'click') this.mouse.state = 'down';
+    if (this.mouse.state === "click") this.mouse.state = "down";
   }
 
   loop(currentTime) {

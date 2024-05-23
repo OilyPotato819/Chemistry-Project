@@ -9,6 +9,7 @@ class Forces {
     this.vibFreq = simParams.vibFreq;
     this.maxRepulsion = simParams.maxRepulsion;
     this.minBdeFactor = simParams.minBdeFactor;
+    this.unbondedFactor = simParams.unbondedFactor;
   }
 
   electrostatic(charge1, charge2, dist) {
@@ -22,14 +23,13 @@ class Forces {
     const sizeFactor = this.calcSizeFactor(atom1.r, atom2.r, dispersion);
     const size = sizeFactor * ((atom1.r + atom2.r) / 2);
 
-    const ljMagnitude = 24 * dispersion * ((2 * size ** 12) / dist ** 13 - size ** 6 / dist ** 7);
+    const magnitude = 24 * dispersion * ((2 * size ** 12) / dist ** 13 - size ** 6 / dist ** 7);
 
-    return ljMagnitude;
+    return magnitude;
   }
 
-  morse(atom1, atom2, atomDist, electronDist, angleDiff) {
+  morse(atom1, atom2, atomDist, electronDist, angleDiff, bothUnbonded) {
     let { bde, radiiSum } = getBondInfo(atom1, atom2);
-    bde *= this.calcBdeFactor(angleDiff);
 
     const reducedMass = (atom1.atomicMass * atom2.atomicMass) / (atom1.atomicMass + atom2.atomicMass);
 
@@ -40,14 +40,21 @@ class Forces {
     let bondLength = naturalLog / a + radiiSum;
 
     const naturalBase = Math.E ** (-a * (atomDist - bondLength));
-    const magnitude = 2 * bde * a * naturalBase * (naturalBase - 1);
+    let magnitude = 2 * bde * a * naturalBase * (naturalBase - 1);
 
-    const shouldBond = electronDist < Math.log(2) / a + bondLength;
+    // minimum: ln(2) / a + bondLength
+    // inflection: ln(4) / a + bondLength
+    const canBond = electronDist < Math.log(2) / a + bondLength;
 
-    return { morseMagnitude: magnitude, shouldBond: shouldBond };
+    if (magnitude < 0) {
+      magnitude *= this.angleDiffFactor(angleDiff);
+      magnitude *= canBond && bothUnbonded ? 1 : this.unbondedFactor;
+    }
+
+    return { morseMagnitude: magnitude, canBond: canBond };
   }
 
-  calcBdeFactor(angleDiff) {
+  angleDiffFactor(angleDiff) {
     const normAngleDiff = (2 * Math.PI - angleDiff) / (2 * Math.PI);
     const easedAngleDiff = easeInOutCubic(normAngleDiff);
     return (1 - this.minBdeFactor) * easedAngleDiff + this.minBdeFactor;

@@ -1,6 +1,8 @@
 let fs = require('fs');
 const Papa = require('papaparse');
 
+const outputDirectory = './website/data';
+
 let bondData = parseCSV('./csv/bond-energies.csv', 'utf8');
 let bondDataString = 'let bondData = new Map([';
 for (const bond of bondData) {
@@ -8,18 +10,20 @@ for (const bond of bondData) {
   const bondString = bond.name.split(/-|=|≡/).sort().toString().replace(',', bondType);
   bondDataString += `['${bondString}', ${bond.energy}],`;
 }
-fs.writeFileSync('./website/bond-data.js', `${bondDataString}])`);
+fs.writeFileSync(`${outputDirectory}/bond-data.js`, `${bondDataString}])`);
 
 let elementData = parseCSV('./csv/elements.csv', 'utf8');
 let elementDataString = 'let elementData = new Map([';
 for (const element of elementData) {
   elementDataString += `['${element.symbol}', ${JSON.stringify(fixProperties(element))}],`;
 }
-fs.writeFileSync('./website/element-data.js', `${elementDataString}])`);
+fs.writeFileSync(`${outputDirectory}/element-data.js`, `${elementDataString}])`);
 
 function fixProperties(object) {
   for (const property in object) {
-    object[property] = isNaN(object[property]) ? object[property] : +object[property];
+    if (!isNaN(object[property])) object[property] = +object[property];
+    if (object[property] === 'TRUE') object[property] = true;
+    if (object[property] === 'FALSE') object[property] = false;
   }
   return object;
 }

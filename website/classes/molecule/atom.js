@@ -4,7 +4,7 @@ import { Electron } from './electron.js';
 import { changeShade, decomposeForce } from '../../functions/utils.js';
 
 class Atom {
-  constructor(x, y, speed, symbol, simulation) {
+  constructor(x, y, speed, symbol, simulation, angleConstant = 0) {
     this.x = x;
     this.y = y;
 
@@ -33,7 +33,7 @@ class Atom {
 
     const bondNum = this.valency + this.lonePairs;
     for (let i = 0; i < bondNum; i++) {
-      const angle = i * ((2 * Math.PI) / bondNum);
+      const angle = i * ((2 * Math.PI) / bondNum) + angleConstant;
       // charge for lone pair is 2, charge for free electron is 1
       const charge = i < this.lonePairs ? 2 : 1;
       // pushes electrons to bond array

@@ -5,7 +5,7 @@ import { calcForces } from '../functions/calc-forces.js';
 import { getFormulas } from '../functions/get-formulas.js';
 
 class Simulation {
-  constructor(simParams, cnv, mouse, catalogue, container) {
+  constructor(simParams, cnv, mouse, container) {
     this.speed = simParams.speed;
     this.scale = simParams.scale;
     this.atomFriction = simParams.atomFriction;
@@ -16,7 +16,7 @@ class Simulation {
     this.collision = new Collision(simParams.cor);
 
     this.mouse = mouse;
-    this.catalogue = catalogue;
+    // this.catalogue = catalogue;
     this.container = container;
 
     this.atoms = [];
@@ -33,7 +33,7 @@ class Simulation {
     // this.atoms.push(new Atom(600, 300, 0, 'C', this, 0));
     // this.atoms.push(new Atom(800, 500, 0, 'C', this, 0));
 
-    this.randomAtoms(50, 150, ['H', 'O', 'C', 'N'], [6, 1, 1, 1]);
+    // this.randomAtoms(50, 150, ['H', 'O', 'C', 'N'], [6, 1, 1, 1]);
 
     this.createEventListeners();
   }
@@ -106,7 +106,7 @@ class Simulation {
       }
     }
 
-    this.catalogue.draw(this.ctx);
+    // this.catalogue.draw(this.ctx);
 
     // let totalKineticEnergy = 0;
     // for (const atom of this.atoms) {

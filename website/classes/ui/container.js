@@ -1,5 +1,5 @@
 class Container {
-  constructor(left, right, top, bottom, mouse, catalogue, scale) {
+  constructor(left, right, top, bottom, mouse, scale) {
     this.canvasPos = { left: left, right: right, top: top, bottom: bottom };
     this.scaledPos = {};
     this.calcPos(scale);
@@ -8,7 +8,7 @@ class Container {
     this.drag = { x: null, y: null };
     this.clickDist = 10;
     this.mouse = mouse;
-    this.catalogue = catalogue;
+    // this.catalogue = catalogue;
   }
 
   calcPos(scale) {
@@ -19,22 +19,22 @@ class Container {
 
   update(scale) {
     for (const side in this.canvasPos) {
-      const axis = side === 'left' || side === 'right' ? 'x' : 'y';
+      const axis = side === "left" || side === "right" ? "x" : "y";
       const dist = Math.abs(this.mouse[axis] - this.canvasPos[side]);
 
       if (dist > this.clickDist) {
-        canvas.style.cursor = 'default';
+        canvas.style.cursor = "default";
         continue;
       }
 
-      canvas.style.cursor = 'n-resize';
+      canvas.style.cursor = "n-resize";
 
-      if (this.mouse.state === 'click') {
+      if (this.mouse.state === "click") {
         this.drag[axis] = side;
       }
     }
 
-    if (this.mouse.state === 'up') {
+    if (this.mouse.state === "up") {
       this.velocity = { left: 0, right: 0, top: 0, bottom: 0 };
       this.drag = { x: null, y: null };
       return;
@@ -52,17 +52,22 @@ class Container {
       this.canvasPos[side] = this.mouse.y;
     }
 
-    if (this.canvasPos.right > this.catalogue.x - this.catalogue.marginLeft) {
-      this.canvasPos.right = this.catalogue.x - this.catalogue.marginLeft;
-      this.velocity.right = 0;
-    }
+    // if (this.canvasPos.right > this.catalogue.x - this.catalogue.marginLeft) {
+    //   this.canvasPos.right = this.catalogue.x - this.catalogue.marginLeft;
+    //   this.velocity.right = 0;
+    // }
 
     this.calcPos(scale);
   }
 
   draw(ctx) {
-    ctx.strokeStyle = 'black';
-    ctx.strokeRect(this.canvasPos.left, this.canvasPos.top, this.canvasPos.right - this.canvasPos.left, this.canvasPos.bottom - this.canvasPos.top);
+    ctx.strokeStyle = "black";
+    ctx.strokeRect(
+      this.canvasPos.left,
+      this.canvasPos.top,
+      this.canvasPos.right - this.canvasPos.left,
+      this.canvasPos.bottom - this.canvasPos.top
+    );
   }
 }
 

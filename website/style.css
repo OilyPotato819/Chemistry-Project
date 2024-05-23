@@ -1,42 +1,49 @@
 * {
   margin: 0;
-  border: 0;
   padding: 0;
   box-sizing: border-box;
-  list-style: none;
 }
 
-body {
+body, html {
   background-color: #313338;
   font-family: sans-serif;
   text-align: center;
-}
-
-canvas {
-  margin-top: 10px;
-}
-
-.tabs-container {
-  display: flex;
-  flex-direction: column;
+  height: 100%;
   width: 100%;
 }
 
-.tabs-header {
-  background-color: #dfa612;
+#container {
   display: flex;
-  flex-wrap: wrap;
-  padding: 0.375rem;
+  height: 100vh;
 }
 
-.tabs-header > li {
-  color: #fff;
-  cursor: pointer;
-  flex-grow: 1;
-  padding: 0.375rem;
-  font-size: 1.125rem;
+#periodic_table {
+  background-color: rgb(175, 175, 175);
+  flex: 0 0 35%;
+  padding-top: 50px;
 }
 
-.tabs {
-  display: flex;
+#periodic_table > div {
+    margin-bottom: 3%;
+}
+
+#periodic_table > div > div {
+	width: 5.5%;
+	display: inline-block;
+	margin-right: -7px;
+}
+
+#periodic_table > div > div > div {
+    border: 3px solid black;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    text-align: center;
+    /* background: red; */
+    margin-top: -3px;
+    padding: 20% 0;
+}
+
+canvas {
+  flex: 0 0 65%;
 }

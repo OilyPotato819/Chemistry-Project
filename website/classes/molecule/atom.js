@@ -2,16 +2,12 @@ import { elementData } from "../../data/element-data.js";
 import { Bond } from "./bond.js";
 import { Electron } from "./electron.js";
 import { changeShade, decomposeForce } from "../../functions/utils.js";
-import { Mouse } from "../ui/mouse.js";
 class Atom {
   constructor(x, y, speed, symbol, simulation, clicked) {
-  constructor(x, y, speed, symbol, simulation, angleConstant = 0) {
     this.x = x;
     this.y = y;
     this.clicked = clicked;
     //random initial velocity
-
-    // random initial velocity
     this.vx = Math.random() * speed * 2 - speed;
     this.vy = Math.random() * speed * 2 - speed;
 
@@ -32,6 +28,7 @@ class Atom {
     this.electrostaticForce = simulation.forces.electrostatic.bind(simulation.forces);
     this.container = simulation.container;
     this.simulationScale = simulation.scale;
+    this.atoms = simulation.atoms;
 
     this.checked = false;
     this.font = `${this.r * simulation.scale * 0.7}px sans-serif`;
@@ -48,17 +45,59 @@ class Atom {
   }
 
   update(elapsedTime) {
-    if (!this.clicked) {
-      this.x += this.vx * elapsedTime;
-      this.y += this.vy * elapsedTime;
+    this.x += this.vx * elapsedTime;
+    this.y += this.vy * elapsedTime;
 
-      this.vx *= this.friction;
-      this.vy *= this.friction;
-    } else {
-      this.x = this.mouse.x / this.simulationScale;
-      this.y = this.mouse.y / this.simulationScale;
+    this.vx *= this.friction;
+    this.vy *= this.friction;
+
+    for (let i = 0; i < this.bonds.length - 1; i++) {
+      for (let j = i + 1; j < this.bonds.length; j++) {
+        const electron1 = this.bonds[i].parentElectron || this.bonds[i];
+        const electron2 = this.bonds[j].parentElectron || this.bonds[j];
+        this.repulseElectrons(electron1, electron2, elapsedTime);
+      }
     }
 
+    if (this.clicked) {
+      this.dragUpdate();
+    } else {
+      this.containerCollision();
+    }
+
+    for (const bond of this.bonds) {
+      bond.update(elapsedTime);
+    }
+  }
+
+  dragUpdate() {
+    this.x = this.mouse.x / this.simulationScale;
+    this.y = this.mouse.y / this.simulationScale;
+    if (this.mouse.x > window.innerWidth * 0.65 - (1 / 2) * this.r) {
+      this.mouse.cursor.setAttribute(
+        "style",
+        "top: " +
+          (this.mouse.y - (1 / 2) * this.r) +
+          "px; left: " +
+          (this.mouse.x - (1 / 2) * this.r) +
+          "px; width: " +
+          this.r +
+          "px; height: " +
+          this.r +
+          "px; visibility: visible;"
+      );
+    } else {
+      this.mouse.cursor.setAttribute("style", "visibility: hidden");
+    }
+    if (this.mouse.state === "up") {
+      this.mouse.cursor.setAttribute("style", "visibility: hidden");
+      this.clicked = false;
+      this.vx = 0;
+      this.vy = 0;
+    }
+  }
+
+  containerCollision() {
     if (this.x - this.r < this.container.scaledPos.left) {
       this.x = this.container.scaledPos.left + this.r;
       this.vx = Math.abs(this.vx) + this.container.velocity.left;
@@ -74,30 +113,11 @@ class Atom {
       this.y = this.container.scaledPos.bottom - this.r;
       this.vy = -Math.abs(this.vy) + this.container.velocity.bottom;
     }
+  }
 
-    for (let i = 0; i < this.bonds.length - 1; i++) {
-      for (let j = i + 1; j < this.bonds.length; j++) {
-        const electron1 = this.bonds[i].parentElectron || this.bonds[i];
-        const electron2 = this.bonds[j].parentElectron || this.bonds[j];
-        this.repulseElectrons(electron1, electron2, elapsedTime);
-      }
-    }
-
-    for (const bond of this.bonds) {
-      bond.update(elapsedTime);
-    }
-
-    for (let i = 0; i < this.bonds.length - 1; i++) {
-      for (let j = i + 1; j < this.bonds.length; j++) {
-        const electron1 = this.bonds[i].parentElectron || this.bonds[i];
-        const electron2 = this.bonds[j].parentElectron || this.bonds[j];
-        this.repulseElectrons(electron1, electron2, elapsedTime);
-      }
-    }
-
-    for (const bond of this.bonds) {
-      bond.update(elapsedTime);
-    }
+  destroy() {
+    const index = this.atoms.indexOf(this);
+    this.atoms.splice(index, 1);
   }
 
   applyForce(force, angle, elapsedTime) {

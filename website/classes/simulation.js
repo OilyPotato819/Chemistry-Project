@@ -26,11 +26,11 @@ class Simulation {
     this.lastTime = 0;
     this.elapsedTime = 0;
 
-    this.atoms.push(new Atom(700, 300, 0, "C", this, 0));
-    this.atoms.push(new Atom(700, 450, 0, "H", this, Math.PI));
-    this.atoms.push(new Atom(700, 600, 0, "H", this, Math.PI));
-    this.atoms.push(new Atom(500, 600, 0, "Na", this, Math.PI));
-    // this.atoms.push(new Atom(725, 600, 0, 'H', this, 0));
+    // this.atoms.push(new Atom(700, 300, 0, "C", this, 0));
+    // this.atoms.push(new Atom(700, 450, 0, "H", this, Math.PI));
+    // this.atoms.push(new Atom(700, 600, 0, "H", this, Math.PI));
+    // this.atoms.push(new Atom(500, 600, 0, "Na", this, Math.PI));
+    this.atoms.push(new Atom(725, 600, 0, "H", this, false));
 
     // this.atoms.push(new Atom(600, 300, 0, 'C', this, 0));
     // this.atoms.push(new Atom(800, 500, 0, 'C', this, 0));

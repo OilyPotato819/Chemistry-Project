@@ -18,7 +18,7 @@ html {
   height: 100vh;
 }
 
-#periodic_table {
+#sidebar {
   -webkit-user-select: none; /* Safari */
   -ms-user-select: none; /* IE 10 and IE 11 */
   user-select: none; /* Standard syntax */
@@ -53,4 +53,11 @@ html {
 
 canvas {
   flex: 0 0 65%;
+}
+
+.circle {
+  border: 1px solid black;
+  border-radius: 50%;
+  position: absolute;
+  visibility:hidden
 }

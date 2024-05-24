@@ -3,7 +3,8 @@ import { easeInOutCubic } from '../functions/utils.js';
 
 class Forces {
   constructor(simParams) {
-    this.coulomb = simParams.coulomb;
+    this.bondCoulomb = simParams.bondCoulomb;
+    this.electronCoulomb = simParams.electronCoulomb;
     this.sizeFactor = simParams.sizeFactor;
     this.dispersionFactor = simParams.dispersionFactor;
     this.vibFreq = simParams.vibFreq;
@@ -12,8 +13,9 @@ class Forces {
     this.unbondedFactor = simParams.unbondedFactor;
   }
 
-  electrostatic(charge1, charge2, dist) {
-    return this.coulomb * ((charge1 * charge2) / dist ** 2);
+  electrostatic(charge1, charge2, dist, forBond) {
+    const coulomb = forBond ? this.bondCoulomb : this.electronCoulomb;
+    return Math.abs((coulomb * charge1 * charge2) / dist ** 2);
   }
 
   lj(dist, atom1, atom2) {

@@ -3,8 +3,6 @@ import { calcAngle, calcDist, principalAngle } from './utils.js';
 function calcForces(simulation) {
   const { atoms, forces, elapsedTime, collision, electronegativityFactor } = simulation;
 
-  if (!atoms.length) return;
-
   let electronPairs = [];
   let atomPairs = [];
 
@@ -23,26 +21,47 @@ function calcForces(simulation) {
         atomDist = atom1.r + atom2.r;
       }
 
+      // Not covalent or ionic
+
       if (!atom1.nonmetal || atom1.valency === 0 || !atom2.nonmetal || atom2.valency === 0) {
         const ljMagnitude = forces.lj(atomDist, atom1, atom2);
         atom1.applyForce(ljMagnitude, atomAngle, elapsedTime);
         atom2.applyForce(ljMagnitude, atomAngle + Math.PI, elapsedTime);
       }
 
+      // Ionic Bond
+
       const isIonic = (atom1.nonmetal && !atom2.nonmetal) || (!atom1.nonmetal && atom2.nonmetal);
+
       if (isIonic && atom1.charge === 0 && atom2.charge === 0) {
         const metal = atom1.nonmetal ? atom2 : atom1;
         const nonmetal = atom1.nonmetal ? atom1 : atom2;
 
         const bondDist = electronegativityFactor * Math.abs(atom1.electronegativity - atom2.electronegativity) + atom1.r + atom2.r;
         if (atomDist < bondDist) {
-          const maxTransferred = Math.max(atom1.valency, atom2.valency);
+          const maxTransferred = Math.max(metal.valency - metal.charge, nonmetal.valency + nonmetal.charge);
           metal.charge += maxTransferred;
           nonmetal.charge -= maxTransferred;
         }
       }
 
-      if (!atom1.nonmetal || !atom2.nonmetal) continue;
+      // Ions
+
+      if (atom1.charge != 0 && atom2.charge != 0) {
+        const electrostaticMagnitude = forces.electrostatic(atom1.charge, atom2.charge, atomDist, true);
+        const oppositeCharge = Math.sign(atom1.charge) != Math.sign(atom2.charge);
+        const angle1 = oppositeCharge ? atomAngle + Math.PI : atomAngle;
+        const angle2 = oppositeCharge ? atomAngle : atomAngle + Math.PI;
+
+        atom1.applyForce(electrostaticMagnitude, angle1, elapsedTime);
+        atom2.applyForce(electrostaticMagnitude, angle2, elapsedTime);
+      }
+
+      const canCovalent1 = atom1.nonmetal && atom1.charge === 0 && atom1.valency != 0;
+      const canCovalent2 = atom2.nonmetal && atom2.charge === 0 && atom2.valency != 0;
+      if (!canCovalent1 || !canCovalent2) continue;
+
+      // Covalent
 
       if (i === 0) prepareAtom(atom2, elapsedTime);
 
@@ -151,8 +170,8 @@ function attractElectrons(electron1, electron2, forces, elapsedTime) {
   const dist1 = calcDist(electron1, electron2.parentAtom);
   const dist2 = calcDist(electron2, electron1.parentAtom);
 
-  const force1 = forces.electrostatic(electron1.charge, 9, dist1);
-  const force2 = forces.electrostatic(electron2.charge, 9, dist2);
+  const force1 = forces.electrostatic(electron1.charge, 9, dist1, false);
+  const force2 = forces.electrostatic(electron2.charge, 9, dist2, false);
 
   const forceAngle1 = calcAngle(electron1, electron2.parentAtom);
   const forceAngle2 = calcAngle(electron2, electron1.parentAtom);

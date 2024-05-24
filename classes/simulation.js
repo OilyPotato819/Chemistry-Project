@@ -1,8 +1,8 @@
-import { Atom } from "./molecule/atom.js";
-import { Forces } from "./forces.js";
-import { Collision } from "./collision.js";
-import { calcForces } from "../functions/calc-forces.js";
-import { getFormulas } from "../functions/get-formulas.js";
+import { Atom } from './molecule/atom.js';
+import { Forces } from './forces.js';
+import { Collision } from './collision.js';
+import { calcForces } from '../functions/calc-forces.js';
+import { getFormulas } from '../functions/get-formulas.js';
 
 class Simulation {
   constructor(simParams, cnv, mouse, container) {
@@ -22,18 +22,12 @@ class Simulation {
 
     this.atoms = [];
     this.cnv = cnv;
-    this.ctx = cnv.getContext("2d");
+    this.ctx = cnv.getContext('2d');
     this.lastTime = 0;
     this.elapsedTime = 0;
 
-    // this.atoms.push(new Atom(700, 300, 0, "C", this, 0));
-    // this.atoms.push(new Atom(700, 450, 0, "H", this, Math.PI));
-    // this.atoms.push(new Atom(700, 600, 0, "H", this, Math.PI));
-    // this.atoms.push(new Atom(500, 600, 0, "Na", this, Math.PI));
-    this.atoms.push(new Atom(725, 600, 0, "H", this, false));
-
-    // this.atoms.push(new Atom(600, 300, 0, 'C', this, 0));
-    // this.atoms.push(new Atom(800, 500, 0, 'C', this, 0));
+    this.atoms.push(new Atom(700, 600, 0, 'Na', this, false));
+    this.atoms.push(new Atom(900, 800, 0, 'Cl', this, false));
 
     // this.randomAtoms(50, 150, ['H', 'O', 'C', 'N'], [6, 1, 1, 1]);
 
@@ -59,20 +53,20 @@ class Simulation {
   }
 
   createEventListeners() {
-    document.addEventListener("mousemove", (event) => {
+    document.addEventListener('mousemove', (event) => {
       this.mouse.update(event);
     });
 
-    document.addEventListener("mousedown", () => {
-      this.mouse.state = "click";
+    document.addEventListener('mousedown', () => {
+      this.mouse.state = 'click';
     });
 
-    document.addEventListener("mouseup", () => {
-      this.mouse.state = "up";
+    document.addEventListener('mouseup', () => {
+      this.mouse.state = 'up';
     });
 
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden") {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
         this.lastTime = 0;
       }
     });
@@ -81,7 +75,7 @@ class Simulation {
   update() {
     this.container.update(this.scale);
 
-    calcForces(this);
+    if (this.atoms.length) calcForces(this);
     for (const atom of this.atoms) {
       atom.update(this.elapsedTime);
     }
@@ -116,7 +110,7 @@ class Simulation {
     // }
     // kineticEnergyDisplay.innerHTML = Math.round(totalKineticEnergy / 10 ** 12);
 
-    if (this.mouse.state === "click") this.mouse.state = "down";
+    if (this.mouse.state === 'click') this.mouse.state = 'down';
   }
 
   loop(currentTime) {

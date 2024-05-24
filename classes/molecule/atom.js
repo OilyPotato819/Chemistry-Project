@@ -1,7 +1,7 @@
-import { elementData } from "../../data/element-data.js";
-import { Bond } from "./bond.js";
-import { Electron } from "./electron.js";
-import { changeShade, decomposeForce } from "../../functions/utils.js";
+import { elementData } from '../../data/element-data.js';
+import { Bond } from './bond.js';
+import { Electron } from './electron.js';
+import { changeShade, decomposeForce } from '../../functions/utils.js';
 class Atom {
   constructor(x, y, speed, symbol, simulation, clicked) {
     this.x = x;
@@ -33,6 +33,7 @@ class Atom {
     this.checked = false;
     this.font = `${this.r * simulation.scale * 0.7}px sans-serif`;
     this.borderColor = changeShade(this.color, 10);
+    this.charge = 0;
 
     const bondNum = this.valency + this.lonePairs;
     for (let i = 0; i < bondNum; i++) {
@@ -75,22 +76,22 @@ class Atom {
     this.y = this.mouse.y / this.simulationScale;
     if (this.mouse.x > window.innerWidth * 0.65 - (1 / 2) * this.r) {
       this.mouse.cursor.setAttribute(
-        "style",
-        "top: " +
+        'style',
+        'top: ' +
           (this.mouse.y - (1 / 2) * this.r) +
-          "px; left: " +
+          'px; left: ' +
           (this.mouse.x - (1 / 2) * this.r) +
-          "px; width: " +
+          'px; width: ' +
           this.r +
-          "px; height: " +
+          'px; height: ' +
           this.r +
-          "px; visibility: visible;"
+          'px; visibility: visible;'
       );
     } else {
-      this.mouse.cursor.setAttribute("style", "visibility: hidden");
+      this.mouse.cursor.setAttribute('style', 'visibility: hidden');
     }
-    if (this.mouse.state === "up") {
-      this.mouse.cursor.setAttribute("style", "visibility: hidden");
+    if (this.mouse.state === 'up') {
+      this.mouse.cursor.setAttribute('style', 'visibility: hidden');
       this.clicked = false;
       this.vx = 0;
       this.vy = 0;
@@ -134,7 +135,7 @@ class Atom {
     const dist = Math.sqrt(x ** 2 + y ** 2);
     const forceAngle = Math.atan2(y, x);
     // get coulomb force between electrons
-    const force = this.electrostaticForce(electron1.charge, electron2.charge, dist);
+    const force = this.electrostaticForce(electron1.charge, electron2.charge, dist, false);
     // electrons 1 and 2 have reflected angles
     const angle1 = forceAngle - electron1.angle;
     const angle2 = forceAngle + Math.PI - electron2.angle;
@@ -163,9 +164,9 @@ class Atom {
     ctx.arc(this.x * scale, this.y * scale, this.r * scale, 0, Math.PI * 2);
     ctx.stroke();
 
-    ctx.fillStyle = "white";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     ctx.font = this.font;
     ctx.fillText(this.symbol, this.x * scale, this.y * scale);
   }

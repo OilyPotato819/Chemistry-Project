@@ -1,8 +1,8 @@
-import { Atom } from './molecule/atom.js';
-import { Forces } from './forces.js';
-import { Collision } from './collision.js';
-import { calcForces } from '../functions/calc-forces.js';
-import { getFormulas } from '../functions/get-formulas.js';
+import { Atom } from "./molecule/atom.js";
+import { Forces } from "./forces.js";
+import { Collision } from "./collision.js";
+import { calcForces } from "../functions/calc-forces.js";
+import { getFormulas } from "../functions/get-formulas.js";
 
 class Simulation {
   constructor(simParams, cnv, mouse, container) {
@@ -22,14 +22,14 @@ class Simulation {
 
     this.atoms = [];
     this.cnv = cnv;
-    this.ctx = cnv.getContext('2d');
+    this.ctx = cnv.getContext("2d");
     this.lastTime = 0;
     this.elapsedTime = 0;
 
-    this.atoms.push(new Atom(700, 300, 0, 'C', this, 0));
-    this.atoms.push(new Atom(700, 450, 0, 'H', this, Math.PI));
-    this.atoms.push(new Atom(700, 600, 0, 'H', this, Math.PI));
-    this.atoms.push(new Atom(500, 600, 0, 'Na', this, Math.PI));
+    this.atoms.push(new Atom(700, 300, 0, "C", this, 0));
+    this.atoms.push(new Atom(700, 450, 0, "H", this, Math.PI));
+    this.atoms.push(new Atom(700, 600, 0, "H", this, Math.PI));
+    this.atoms.push(new Atom(500, 600, 0, "Na", this, Math.PI));
     // this.atoms.push(new Atom(725, 600, 0, 'H', this, 0));
 
     // this.atoms.push(new Atom(600, 300, 0, 'C', this, 0));
@@ -51,7 +51,7 @@ class Simulation {
       for (let x = 0; x < this.cnv.width; x += spacing) {
         const index = indexes[Math.floor(Math.random() * indexes.length)];
         const symbol = symbols[index];
-        this.atoms.push(new Atom(x / this.scale, y / this.scale, 5, symbol, this));
+        this.atoms.push(new Atom(x / this.scale, y / this.scale, 5, symbol, this, false));
         num++;
         if (num === maxNum) return;
       }
@@ -59,20 +59,20 @@ class Simulation {
   }
 
   createEventListeners() {
-    document.addEventListener('mousemove', (event) => {
+    document.addEventListener("mousemove", (event) => {
       this.mouse.update(event);
     });
 
-    document.addEventListener('mousedown', () => {
-      this.mouse.state = 'click';
+    document.addEventListener("mousedown", () => {
+      this.mouse.state = "click";
     });
 
-    document.addEventListener('mouseup', () => {
-      this.mouse.state = 'up';
+    document.addEventListener("mouseup", () => {
+      this.mouse.state = "up";
     });
 
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") {
         this.lastTime = 0;
       }
     });
@@ -116,7 +116,7 @@ class Simulation {
     // }
     // kineticEnergyDisplay.innerHTML = Math.round(totalKineticEnergy / 10 ** 12);
 
-    if (this.mouse.state === 'click') this.mouse.state = 'down';
+    if (this.mouse.state === "click") this.mouse.state = "down";
   }
 
   loop(currentTime) {

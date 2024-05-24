@@ -2,7 +2,8 @@ class Mouse {
   constructor() {
     this.x = 0;
     this.y = 0;
-    this.state = 'up';
+    this.state = "up";
+    window.addEventListener("mousemove", this.update);
   }
 
   update(event) {

@@ -1,18 +1,23 @@
-import { elementData } from '../../data/element-data.js';
-import { Bond } from './bond.js';
-import { Electron } from './electron.js';
-import { changeShade, decomposeForce } from '../../functions/utils.js';
-
+import { elementData } from "../../data/element-data.js";
+import { Bond } from "./bond.js";
+import { Electron } from "./electron.js";
+import { changeShade, decomposeForce } from "../../functions/utils.js";
+import { Mouse } from "../ui/mouse.js";
 class Atom {
+  constructor(x, y, speed, symbol, simulation, clicked) {
   constructor(x, y, speed, symbol, simulation, angleConstant = 0) {
     this.x = x;
     this.y = y;
+    this.clicked = clicked;
+    //random initial velocity
 
     // random initial velocity
     this.vx = Math.random() * speed * 2 - speed;
     this.vy = Math.random() * speed * 2 - speed;
 
-    // copies properties from element data (covalentRadius, electronegativity ...) into Atom object
+    this.mouse = simulation.mouse;
+
+    //copies properties from element data (covalentRadius, electronegativity ...) into Atom object
     // valency = number of lone electrons that are free to bond
     // lonepairs = electron pairs that won't bond
     Object.assign(this, elementData.get(symbol));
@@ -22,11 +27,11 @@ class Atom {
 
     this.bonds = [];
     this.previousBonds = [];
-    this.charge = 0;
 
     this.friction = simulation.atomFriction;
     this.electrostaticForce = simulation.forces.electrostatic.bind(simulation.forces);
     this.container = simulation.container;
+    this.simulationScale = simulation.scale;
 
     this.checked = false;
     this.font = `${this.r * simulation.scale * 0.7}px sans-serif`;
@@ -34,7 +39,7 @@ class Atom {
 
     const bondNum = this.valency + this.lonePairs;
     for (let i = 0; i < bondNum; i++) {
-      const angle = i * ((2 * Math.PI) / bondNum) + angleConstant;
+      const angle = i * ((2 * Math.PI) / bondNum);
       // charge for lone pair is 2, charge for free electron is 1
       const charge = i < this.lonePairs ? 2 : 1;
       // pushes electrons to bond array
@@ -43,11 +48,16 @@ class Atom {
   }
 
   update(elapsedTime) {
-    this.x += this.vx * elapsedTime;
-    this.y += this.vy * elapsedTime;
+    if (!this.clicked) {
+      this.x += this.vx * elapsedTime;
+      this.y += this.vy * elapsedTime;
 
-    this.vx *= this.friction;
-    this.vy *= this.friction;
+      this.vx *= this.friction;
+      this.vy *= this.friction;
+    } else {
+      this.x = this.mouse.x / this.simulationScale;
+      this.y = this.mouse.y / this.simulationScale;
+    }
 
     if (this.x - this.r < this.container.scaledPos.left) {
       this.x = this.container.scaledPos.left + this.r;
@@ -63,6 +73,18 @@ class Atom {
     } else if (this.y + this.r > this.container.scaledPos.bottom) {
       this.y = this.container.scaledPos.bottom - this.r;
       this.vy = -Math.abs(this.vy) + this.container.velocity.bottom;
+    }
+
+    for (let i = 0; i < this.bonds.length - 1; i++) {
+      for (let j = i + 1; j < this.bonds.length; j++) {
+        const electron1 = this.bonds[i].parentElectron || this.bonds[i];
+        const electron2 = this.bonds[j].parentElectron || this.bonds[j];
+        this.repulseElectrons(electron1, electron2, elapsedTime);
+      }
+    }
+
+    for (const bond of this.bonds) {
+      bond.update(elapsedTime);
     }
 
     for (let i = 0; i < this.bonds.length - 1; i++) {
@@ -121,9 +143,9 @@ class Atom {
     ctx.arc(this.x * scale, this.y * scale, this.r * scale, 0, Math.PI * 2);
     ctx.stroke();
 
-    ctx.fillStyle = 'white';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
     ctx.font = this.font;
     ctx.fillText(this.symbol, this.x * scale, this.y * scale);
   }

@@ -19,6 +19,9 @@ html {
 }
 
 #periodic_table {
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
   background-color: rgb(175, 175, 175);
   flex: 0 0 35%;
   padding-top: 50px;

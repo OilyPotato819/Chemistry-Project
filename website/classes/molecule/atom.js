@@ -2,6 +2,7 @@ import { elementData } from '../../data/element-data.js';
 import { Bond } from './bond.js';
 import { Electron } from './electron.js';
 import { changeShade, decomposeForce } from '../../functions/utils.js';
+
 class Atom {
   constructor(x, y, speed, symbol, simulation, clicked) {
     this.x = x;
@@ -45,29 +46,55 @@ class Atom {
     }
   }
 
-  update(elapsedTime) {
-    this.x += this.vx * elapsedTime;
-    this.y += this.vy * elapsedTime;
+  destroy() {
+    const index = this.atoms.indexOf(this);
+    this.atoms.splice(index, 1);
+  }
 
-    this.vx *= this.friction;
-    this.vy *= this.friction;
+  applyForce(force, angle, elapsedTime) {
+    const components = decomposeForce(force, angle);
 
-    for (let i = 0; i < this.bonds.length - 1; i++) {
-      for (let j = i + 1; j < this.bonds.length; j++) {
-        const electron1 = this.bonds[i].parentElectron || this.bonds[i];
-        const electron2 = this.bonds[j].parentElectron || this.bonds[j];
-        this.repulseElectrons(electron1, electron2, elapsedTime);
-      }
-    }
+    this.vx += (components.x / this.atomicMass) * elapsedTime;
+    this.vy += (components.y / this.atomicMass) * elapsedTime;
+  }
 
-    if (this.clicked) {
-      this.dragUpdate();
-    } else {
-      this.containerCollision();
-    }
+  repulseElectrons(electron1, electron2, elapsedTime) {
+    const x = electron1.x - electron2.x;
+    const y = electron1.y - electron2.y;
 
-    for (const bond of this.bonds) {
-      bond.update(elapsedTime);
+    const dist = Math.sqrt(x ** 2 + y ** 2);
+    const forceAngle = Math.atan2(y, x);
+    // get coulomb force between electrons
+    const force = this.electrostaticForce(electron1.charge, electron2.charge, dist, false);
+    // electrons 1 and 2 have reflected angles
+    const angle1 = forceAngle;
+    const angle2 = forceAngle + Math.PI;
+
+    electron1.applyTorque(force, angle1, elapsedTime);
+    electron2.applyTorque(force, angle2, elapsedTime);
+  }
+
+  createBond(parentElectron, bondedAtom, bondedElectron) {
+    this.bonds[parentElectron.index] = new Bond(this, bondedAtom, parentElectron, bondedElectron);
+  }
+
+  breakBond(bond) {
+    this.bonds[bond.parentElectron.index] = bond.parentElectron;
+  }
+
+  canCovalent() {
+    return this.nonmetal && this.charge === 0 && this.valency != 0;
+  }
+
+  transferElectron(electron1, electron2) {
+    electron1.prepareForTransfer(electron2);
+    electron2.prepareForTransfer();
+  }
+
+  removeElectron(electron) {
+    this.bonds.splice(electron.index, 1);
+    for (let i = 0; i < this.bonds.length; i++) {
+      this.bonds[i].index = i;
     }
   }
 
@@ -116,40 +143,30 @@ class Atom {
     }
   }
 
-  destroy() {
-    const index = this.atoms.indexOf(this);
-    this.atoms.splice(index, 1);
-  }
+  update(elapsedTime) {
+    this.x += this.vx * elapsedTime;
+    this.y += this.vy * elapsedTime;
 
-  applyForce(force, angle, elapsedTime) {
-    const components = decomposeForce(force, angle);
+    this.vx *= this.friction;
+    this.vy *= this.friction;
 
-    this.vx += (components.x / this.atomicMass) * elapsedTime;
-    this.vy += (components.y / this.atomicMass) * elapsedTime;
-  }
+    for (let i = 0; i < this.bonds.length - 1; i++) {
+      for (let j = i + 1; j < this.bonds.length; j++) {
+        const electron1 = this.bonds[i].parentElectron || this.bonds[i];
+        const electron2 = this.bonds[j].parentElectron || this.bonds[j];
+        this.repulseElectrons(electron1, electron2, elapsedTime);
+      }
+    }
 
-  repulseElectrons(electron1, electron2, elapsedTime) {
-    const x = electron1.x - electron2.x;
-    const y = electron1.y - electron2.y;
+    if (this.clicked) {
+      this.dragUpdate();
+    } else {
+      this.containerCollision();
+    }
 
-    const dist = Math.sqrt(x ** 2 + y ** 2);
-    const forceAngle = Math.atan2(y, x);
-    // get coulomb force between electrons
-    const force = this.electrostaticForce(electron1.charge, electron2.charge, dist, false);
-    // electrons 1 and 2 have reflected angles
-    const angle1 = forceAngle - electron1.angle;
-    const angle2 = forceAngle + Math.PI - electron2.angle;
-
-    electron1.applyTorque(force, angle1, elapsedTime);
-    electron2.applyTorque(force, angle2, elapsedTime);
-  }
-
-  createBond(parentElectron, bondedAtom, bondedElectron) {
-    this.bonds[parentElectron.index] = new Bond(this, bondedAtom, parentElectron, bondedElectron);
-  }
-
-  breakBond(bond) {
-    this.bonds[bond.parentElectron.index] = bond.parentElectron;
+    for (const bond of this.bonds) {
+      bond.update(elapsedTime);
+    }
   }
 
   draw(ctx, scale) {

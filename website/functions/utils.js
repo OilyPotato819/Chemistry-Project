@@ -1,11 +1,18 @@
 function changeShade(color, amount) {
-  let hexString = '#';
-  for (let i = 1; i < 6; i += 2) {
-    const colorValue = parseInt(color.slice(i, i + 2), 16);
-    const newColor = Math.min(Math.max(colorValue + amount, 0), 255);
-    hexString += newColor.toString(16).padStart(2, '0');
-  }
-  return hexString;
+  let rgb = getRGB(color);
+
+  let newRed = Math.min(Math.max(rgb[0] + amount, 0), 255);
+  let newGreen = Math.min(Math.max(rgb[1] + amount, 0), 255);
+  let newBlue = Math.min(Math.max(rgb[2] + amount, 0), 255);
+
+  return `rgb(${newRed}, ${newGreen}, ${newBlue})`;
+}
+
+function getRGB(string) {
+  return string
+    .replace(/rgb\(|\)/g, '')
+    .split(', ')
+    .map((x) => +x);
 }
 
 function principalAngle(angle) {
@@ -33,4 +40,4 @@ function easeInOutCubic(x) {
   return x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2;
 }
 
-export { changeShade, principalAngle, calcAngle, calcDist, decomposeForce, kineticEnergy, easeInOutCubic };
+export { changeShade, getRGB, principalAngle, calcAngle, calcDist, decomposeForce, kineticEnergy, easeInOutCubic };

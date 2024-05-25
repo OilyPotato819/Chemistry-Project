@@ -27,7 +27,7 @@ class Simulation {
     this.elapsedTime = 0;
 
     this.atoms.push(new Atom(700, 600, 0, 'Na', this, false));
-    this.atoms.push(new Atom(900, 800, 0, 'Cl', this, false));
+    this.atoms.push(new Atom(1000, 800, 0, 'Cl', this, false));
 
     // this.randomAtoms(50, 150, ['H', 'O', 'C', 'N'], [6, 1, 1, 1]);
 

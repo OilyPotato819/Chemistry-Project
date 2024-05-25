@@ -5,12 +5,19 @@ class Forces {
   constructor(simParams) {
     this.bondCoulomb = simParams.bondCoulomb;
     this.electronCoulomb = simParams.electronCoulomb;
+    this.nucleusCharge = simParams.nucleusCharge;
     this.sizeFactor = simParams.sizeFactor;
     this.dispersionFactor = simParams.dispersionFactor;
     this.vibFreq = simParams.vibFreq;
     this.maxRepulsion = simParams.maxRepulsion;
     this.minBdeFactor = simParams.minBdeFactor;
     this.unbondedFactor = simParams.unbondedFactor;
+  }
+
+  electricPotential(charge1, charge2, dist) {
+    const k = (8.99e9 * 1.602e-19 * 1.602e-19) / 1e-12;
+    const potential = Math.abs((k * charge1 * charge2) / dist);
+    return (potential * 6.022e23) / 1000;
   }
 
   electrostatic(charge1, charge2, dist, forBond) {

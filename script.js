@@ -49,14 +49,16 @@ let simParams = {
   bondCooldown: 300,
   bondCoulomb: 3000000,
   electronCoulomb: 1000,
+  nucleusCharge: 200,
   dispersionFactor: 3,
   vibFreq: 0.1,
   maxRepulsion: 50,
-  minBdeFactor: 0.01,
+  minBdeFactor: 0.001,
   unbondedFactor: 0.1,
   electronegativityFactor: 10,
   cor: 0.5,
 };
+
 const mouse = new Mouse(document.getElementById('cursor'));
 // let catalogue = new Catalogue(cnv.width * 0.7, 0, cnv.width * 0.3, cnv.height);
 // const catalogue = new Catalogue(cnv.width, cnv.height, 0, 0);

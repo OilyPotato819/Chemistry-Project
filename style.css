@@ -13,21 +13,15 @@ html {
   width: 100%;
 }
 
-#container {
-  display: flex;
-  height: 100vh;
-}
-
 #sidebar {
   -webkit-user-select: none; /* Safari */
   -ms-user-select: none; /* IE 10 and IE 11 */
   user-select: none; /* Standard syntax */
   background-color: rgb(175, 175, 175);
-  flex: 0 0 35%;
+  float: right;
+  width: 35%;
+  height: 100%;
   padding-top: 50px;
-  -webkit-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
 }
 
 #periodic_table > div {
@@ -52,12 +46,14 @@ html {
 }
 
 canvas {
-  flex: 0 0 65%;
+  float:left;
+  /* width:65vh;
+  height:100vh; */
 }
 
 .circle {
   border: 1px solid black;
-  border-radius: 50%;
+  border-radius: 65%;
   position: absolute;
   visibility:hidden
 }

@@ -1,8 +1,8 @@
-import { Atom } from './molecule/atom.js';
-import { Forces } from './forces.js';
-import { Collision } from './collision.js';
-import { calcForces } from '../functions/calc-forces.js';
-import { getFormulas } from '../functions/get-formulas.js';
+import { Atom } from "./molecule/atom.js";
+import { Forces } from "./forces.js";
+import { Collision } from "./collision.js";
+import { calcForces } from "../functions/calc-forces.js";
+import { getFormulas } from "../functions/get-formulas.js";
 
 class Simulation {
   constructor(simParams, cnv, mouse, container) {
@@ -22,12 +22,12 @@ class Simulation {
 
     this.atoms = [];
     this.cnv = cnv;
-    this.ctx = cnv.getContext('2d');
+    this.ctx = cnv.getContext("2d");
     this.lastTime = 0;
     this.elapsedTime = 0;
 
-    this.atoms.push(new Atom(700, 600, 0, 'Na', this, false));
-    this.atoms.push(new Atom(1000, 800, 0, 'Cl', this, false));
+    this.atoms.push(new Atom(700, 600, 0, "Na", this, false));
+    this.atoms.push(new Atom(1000, 800, 0, "Cl", this, false));
 
     // this.randomAtoms(50, 150, ['H', 'O', 'C', 'N'], [6, 1, 1, 1]);
 
@@ -53,20 +53,20 @@ class Simulation {
   }
 
   createEventListeners() {
-    document.addEventListener('mousemove', (event) => {
+    document.addEventListener("mousemove", (event) => {
       this.mouse.update(event);
     });
 
-    document.addEventListener('mousedown', () => {
-      this.mouse.state = 'click';
+    document.addEventListener("mousedown", () => {
+      this.mouse.state = "click";
     });
 
-    document.addEventListener('mouseup', () => {
-      this.mouse.state = 'up';
+    document.addEventListener("mouseup", () => {
+      this.mouse.state = "up";
     });
 
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") {
         this.lastTime = 0;
       }
     });
@@ -110,7 +110,7 @@ class Simulation {
     // }
     // kineticEnergyDisplay.innerHTML = Math.round(totalKineticEnergy / 10 ** 12);
 
-    if (this.mouse.state === 'click') this.mouse.state = 'down';
+    if (this.mouse.state === "click") this.mouse.state = "down";
   }
 
   loop(currentTime) {

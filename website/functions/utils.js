@@ -40,4 +40,13 @@ function easeInOutCubic(x) {
   return x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2;
 }
 
-export { changeShade, getRGB, principalAngle, calcAngle, calcDist, decomposeForce, kineticEnergy, easeInOutCubic };
+function getIonText(symbol, charge) {
+  const numbers = ['', '²', '³', '⁴'];
+  const signs = ['⁻', '⁺'];
+
+  const number = numbers[Math.abs(charge) - 1];
+  const sign = signs[Math.sign(charge) === -1 ? 0 : 1];
+  return `${symbol}${number}${sign}`;
+}
+
+export { changeShade, getRGB, principalAngle, calcAngle, calcDist, decomposeForce, kineticEnergy, easeInOutCubic, getIonText };

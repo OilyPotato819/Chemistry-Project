@@ -1,8 +1,7 @@
 import { elementData } from '../../data/element-data.js';
 import { Bond } from './bond.js';
 import { Electron } from './electron.js';
-import { changeShade, decomposeForce } from '../../functions/utils.js';
-
+import { changeShade, decomposeForce, calcDist, getIonText } from '../../functions/utils.js';
 class Atom {
   constructor(x, y, speed, symbol, simulation, clicked) {
     this.x = x;
@@ -13,11 +12,12 @@ class Atom {
     this.vy = Math.random() * speed * 2 - speed;
 
     this.mouse = simulation.mouse;
-
+    this.leftOffset = simulation.leftSidebar.width;
     //copies properties from element data (covalentRadius, electronegativity ...) into Atom object
     // valency = number of lone electrons that are free to bond
     // lonepairs = electron pairs that won't bond
     Object.assign(this, elementData.get(symbol));
+    this.ionizationEnergies = [this.firstIonization, this.secondIonization, this.thirdIonization, this.fourthIonization].filter((x) => x != 0);
 
     //atom radius = covalent radius
     this.r = this.covalentRadius;
@@ -26,13 +26,14 @@ class Atom {
     this.previousBonds = [];
 
     this.friction = simulation.atomFriction;
-    this.electrostaticForce = simulation.forces.electrostatic.bind(simulation.forces);
+    this.forces = simulation.forces;
     this.container = simulation.container;
     this.simulationScale = simulation.scale;
     this.atoms = simulation.atoms;
 
     this.checked = false;
     this.font = `${this.r * simulation.scale * 0.7}px sans-serif`;
+    this.text = this.symbol;
     this.borderColor = changeShade(this.color, 10);
     this.charge = 0;
 
@@ -65,13 +66,10 @@ class Atom {
     const dist = Math.sqrt(x ** 2 + y ** 2);
     const forceAngle = Math.atan2(y, x);
     // get coulomb force between electrons
-    const force = this.electrostaticForce(electron1.charge, electron2.charge, dist, false);
+    const force = this.forces.electrostatic(electron1.charge, electron2.charge, dist, this.forces.repulsionCoulomb);
     // electrons 1 and 2 have reflected angles
-    const angle1 = forceAngle;
-    const angle2 = forceAngle + Math.PI;
-
-    electron1.applyTorque(force, angle1, elapsedTime);
-    electron2.applyTorque(force, angle2, elapsedTime);
+    electron1.applyTorque(force, forceAngle, elapsedTime);
+    electron2.applyTorque(force, forceAngle + Math.PI, elapsedTime);
   }
 
   createBond(parentElectron, bondedAtom, bondedElectron) {
@@ -86,9 +84,14 @@ class Atom {
     return this.nonmetal && this.charge === 0 && this.valency != 0;
   }
 
-  transferElectron(electron1, electron2) {
-    electron1.prepareForTransfer(electron2);
-    electron2.prepareForTransfer();
+  transferElectron(metalElectron, nonmetalElectron) {
+    const dist1 = calcDist(metalElectron, nonmetalElectron.calcDoublePos(-1));
+    const dist2 = calcDist(metalElectron, nonmetalElectron.calcDoublePos(1));
+    const donorSign = dist1 < dist2 ? -1 : 1;
+    const acceptorSign = donorSign * -1;
+
+    metalElectron.donorTransfer(nonmetalElectron, donorSign);
+    nonmetalElectron.acceptorTransfer(acceptorSign);
   }
 
   removeElectron(electron) {
@@ -101,27 +104,28 @@ class Atom {
   dragUpdate() {
     this.x = this.mouse.x / this.simulationScale;
     this.y = this.mouse.y / this.simulationScale;
-    if (this.mouse.x > window.innerWidth * 0.65 - (1 / 2) * this.r) {
-      this.mouse.cursor.setAttribute(
-        'style',
-        'top: ' +
-          (this.mouse.y - (1 / 2) * this.r) +
-          'px; left: ' +
-          (this.mouse.x - (1 / 2) * this.r) +
-          'px; width: ' +
-          this.r +
-          'px; height: ' +
-          this.r +
-          'px; visibility: visible;'
-      );
+    let hidden = false;
+    if (this.mouse.x > canvas.width - this.simulationScale * this.r || this.mouse.x < this.simulationScale * this.r) {
+      hidden = true;
+
+      const mousePos = this.mouse.getGlobalPos();
+      this.mouse.cursor.style.left = `${mousePos.x - this.simulationScale * this.r}px`;
+      this.mouse.cursor.style.top = `${mousePos.y - this.simulationScale * this.r}px`;
+      this.mouse.cursor.style.width = `${this.r}px`;
+      this.mouse.cursor.style.height = `${this.r}px`;
+      this.mouse.cursor.style.visibility = 'visible';
     } else {
-      this.mouse.cursor.setAttribute('style', 'visibility: hidden');
+      this.mouse.cursor.style.visibility = 'hidden';
     }
     if (this.mouse.state === 'up') {
-      this.mouse.cursor.setAttribute('style', 'visibility: hidden');
-      this.clicked = false;
-      this.vx = 0;
-      this.vy = 0;
+      if (!hidden) {
+        this.clicked = false;
+        this.vx = 0;
+        this.vy = 0;
+      } else {
+        this.destroy();
+      }
+      this.mouse.cursor.style.visibility = 'hidden';
     }
   }
 
@@ -141,6 +145,11 @@ class Atom {
       this.y = this.container.scaledPos.bottom - this.r;
       this.vy = -Math.abs(this.vy) + this.container.velocity.bottom;
     }
+  }
+
+  addCharge(charge) {
+    this.charge += charge;
+    this.text = getIonText(this.symbol, this.charge);
   }
 
   update(elapsedTime) {
@@ -185,7 +194,7 @@ class Atom {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = this.font;
-    ctx.fillText(this.symbol, this.x * scale, this.y * scale);
+    ctx.fillText(this.text, this.x * scale, this.y * scale);
   }
 }
 

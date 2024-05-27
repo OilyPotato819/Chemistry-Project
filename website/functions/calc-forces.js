@@ -1,7 +1,7 @@
-import { calcAngle, calcDist, principalAngle } from "./utils.js";
+import { calcAngle, calcDist, principalAngle } from './utils.js';
 
 function calcForces(simulation) {
-  const { atoms, forces, elapsedTime, collision, electronegativityFactor } = simulation;
+  const { atoms, forces, elapsedTime, collision } = simulation;
 
   let electronPairs = [];
   let atomPairs = [];
@@ -23,65 +23,70 @@ function calcForces(simulation) {
 
       if (i === 0 && atom2.canCovalent()) prepareAtom(atom2, elapsedTime);
 
-      const closestElectronPair = addElectronPairs(
-        atom1,
-        atom2,
-        atomAngle,
-        atomDist,
-        electronPairs,
-        atomPairs,
-        forces,
-        elapsedTime
-      );
+      const closestElectronPair = addElectronPairs(atom1, atom2, atomAngle, atomDist, electronPairs, atomPairs, forces, elapsedTime);
 
-      // Not covalent or ionic
+      // Lennard-Jones
 
+      let ionicMaxBondLength;
       if (!atom1.canCovalent() || !atom2.canCovalent()) {
-        const ljMagnitude = forces.lj(atomDist, atom1, atom2);
-        atom1.applyForce(ljMagnitude, atomAngle, elapsedTime);
-        atom2.applyForce(ljMagnitude, atomAngle + Math.PI, elapsedTime);
+        const { magnitude, minimum } = forces.lj(atomDist, atom1, atom2);
+        ionicMaxBondLength = minimum;
+        atom1.applyForce(magnitude, atomAngle, elapsedTime);
+        atom2.applyForce(magnitude, atomAngle + Math.PI, elapsedTime);
       }
+
+      if (atom1.valency === 0 || atom2.valency === 0) continue;
 
       // Ionic Bond
 
-      const isIonic = (atom1.nonmetal && !atom2.nonmetal) || (!atom1.nonmetal && atom2.nonmetal);
+      const isIonicPair = (atom1.nonmetal && !atom2.nonmetal) || (!atom1.nonmetal && atom2.nonmetal);
+      const highDifference = Math.abs(atom1.electronegativity - atom2.electronegativity) > 1.7;
 
-      if (isIonic && atom1.charge === 0 && atom2.charge === 0) {
+      if (isIonicPair && highDifference && atomDist < ionicMaxBondLength && atom1.charge === 0 && atom2.charge === 0) {
         const metal = atom1.nonmetal ? atom2 : atom1;
         const nonmetal = atom1.nonmetal ? atom1 : atom2;
+        const electron1 = closestElectronPair.electron1;
+        const electron2 = closestElectronPair.electron2;
+        const metalElectron = electron1.parentAtom.nonmetal ? electron2 : electron1;
+        const nonmetalElectron = electron1.parentAtom.nonmetal ? electron1 : electron2;
 
-        attractElectrons(
-          closestElectronPair.electron1,
-          closestElectronPair.electron2,
-          forces,
-          elapsedTime
-        );
+        attractElectrons(electron1, electron2, forces, elapsedTime);
 
-        const bondDist =
-          electronegativityFactor * Math.abs(atom1.electronegativity - atom2.electronegativity) +
-          atom1.r +
-          atom2.r;
-        // console.log(metal.firstIonization, forces.electricPotential(1, atom2.atomicNumber, atomDist));
-        if (atomDist < bondDist) {
-          const maxTransferred = Math.max(
-            metal.valency - metal.charge,
-            nonmetal.valency + nonmetal.charge
-          );
-          metal.charge += maxTransferred;
-          nonmetal.charge -= maxTransferred;
-          atom1.transferElectron(closestElectronPair.electron1, closestElectronPair.electron2);
+        const maxTransferred = Math.min(metal.valency - metal.charge, nonmetal.valency + nonmetal.charge);
+        const metalKineticEnergy = forces.kineticEnergy(metal);
+
+        let electronPairs = [];
+        let transferPairs = [];
+
+        for (let i = 0; i < metal.bonds.length; i++) {
+          const metalElectron = metal.bonds[i];
+          if (metalElectron.type != 'single') continue;
+
+          electronPairs.push(getClosestElectron(metalElectron, nonmetal));
+        }
+
+        electronPairs.sort((a, b) => a.dist - b.dist);
+
+        for (const electronPair of electronPairs) {
+          const potentialDist = calcDist(electronPair.metalElectron, electronPair.nonmetal);
+          const electricPotential = forces.electricPotential(potentialDist);
+
+          const ionizationEnergy = metal.ionizationEnergies[transferPairs.length];
+          if (electricPotential + metalKineticEnergy < ionizationEnergy) break;
+          transferPairs.push(electronPair);
+        }
+
+        for (const transferPair of transferPairs) {
+          metal.addCharge(1);
+          nonmetal.addCharge(-1);
+          atom1.transferElectron(transferPair.metal, transferPair.nonmetal);
         }
       }
 
       // Ions
 
       if (atom1.charge != 0 && atom2.charge != 0) {
-        const electrostaticMagnitude = forces.electrostatic(
-          atom1.charge,
-          atom2.charge,
-          atomDist,
-          true
-        );
+        const electrostaticMagnitude = forces.electrostatic(atom1.charge, atom2.charge, atomDist, forces.bondCoulomb);
         const oppositeCharge = Math.sign(atom1.charge) != Math.sign(atom2.charge);
         const angle1 = oppositeCharge ? atomAngle + Math.PI : atomAngle;
         const angle2 = oppositeCharge ? atomAngle : atomAngle + Math.PI;
@@ -116,33 +121,22 @@ function calcForces(simulation) {
       atom2.applyForce(magnitude, angle2, elapsedTime);
     }
 
-    if (closestPair.isBondedTogether || closestPair.bothUnbonded)
-      attractElectrons(electron1, electron2, forces, elapsedTime);
+    if (closestPair.isBondedTogether || closestPair.bothUnbonded) attractElectrons(electron1, electron2, forces, elapsedTime);
   }
 }
 
 function updateElectronPair(electronPair, forces) {
-  const { electron1, electron2, electronDist, atomAngle, atomDist, wasBondedTogether } =
-    electronPair;
+  const { electron1, electron2, electronDist, atomAngle, atomDist, wasBondedTogether } = electronPair;
   const atom1 = electron1.parentAtom;
   const atom2 = electron2.parentAtom;
 
-  const bothUnbonded =
-    atom1.bonds[electron1.index].type === "single" &&
-    atom2.bonds[electron2.index].type === "single";
+  const bothUnbonded = atom1.bonds[electron1.index].type === 'single' && atom2.bonds[electron2.index].type === 'single';
 
   const electronAngle1 = calcAngle(electron1.parentAtom, electron2);
   const electronAngle2 = calcAngle(electron2.parentAtom, electron1);
 
   const angleDiff = calcAngleDiff(atomAngle, electron1.angle, electron2.angle);
-  const { morseMagnitude, canBond } = forces.morse(
-    atom1,
-    atom2,
-    atomDist,
-    electronDist,
-    angleDiff,
-    bothUnbonded
-  );
+  const { morseMagnitude, canBond } = forces.morse(atom1, atom2, atomDist, electronDist, angleDiff, bothUnbonded);
 
   const morseAngle1 = morseMagnitude > 0 ? atomAngle : electronAngle1;
   const morseAngle2 = morseMagnitude > 0 ? atomAngle + Math.PI : electronAngle2;
@@ -171,16 +165,7 @@ function updateElectronPair(electronPair, forces) {
   }
 }
 
-function addElectronPairs(
-  atom1,
-  atom2,
-  atomAngle,
-  atomDist,
-  electronPairs,
-  atomPairs,
-  forces,
-  elapsedTime
-) {
+function addElectronPairs(atom1, atom2, atomAngle, atomDist, electronPairs, atomPairs, forces, elapsedTime) {
   const canCovalent = atom1.canCovalent() && atom2.canCovalent();
   let newElectronPairs = [];
 
@@ -191,18 +176,13 @@ function addElectronPairs(
 
       if (electron1.charge === 2 || electron2.charge === 2) {
         const electronAngle = calcAngle(electron1, electron2);
-        const electrostaticMagnitude = forces.electrostatic(
-          electron1.charge,
-          electron2.charge,
-          electronDist,
-          false
-        );
+        const electrostaticMagnitude = forces.electrostatic(electron1.charge, electron2.charge, electronDist, forces.repulsionCoulomb);
 
         electron1.applyTorque(electrostaticMagnitude, electronAngle, elapsedTime);
         electron2.applyTorque(electrostaticMagnitude, electronAngle + Math.PI, elapsedTime);
       }
 
-      if (electron1.type != "single" || electron2.type != "single") continue;
+      if (electron1.type != 'single' || electron2.type != 'single') continue;
 
       let electronPair = {
         electron1: electron1,
@@ -213,8 +193,7 @@ function addElectronPairs(
       };
 
       if (canCovalent) {
-        electronPair.wasBondedTogether =
-          atom1.previousBonds[electron1.index].bondedElectron === electron2;
+        electronPair.wasBondedTogether = atom1.previousBonds[electron1.index].bondedElectron === electron2;
         electronPairs.push(electronPair);
       }
 
@@ -233,8 +212,8 @@ function attractElectrons(electron1, electron2, forces, elapsedTime) {
   const dist1 = calcDist(electron1, electron2.parentAtom);
   const dist2 = calcDist(electron2, electron1.parentAtom);
 
-  const force1 = forces.electrostatic(1, forces.nucleusCharge, dist1, false);
-  const force2 = forces.electrostatic(1, forces.nucleusCharge, dist2, false);
+  const force1 = forces.electrostatic(1, forces.nucleusCharge, dist1, forces.attractionCoulomb);
+  const force2 = forces.electrostatic(1, forces.nucleusCharge, dist2, forces.attractionCoulomb);
 
   const forceAngle1 = calcAngle(electron1, electron2.parentAtom);
   const forceAngle2 = calcAngle(electron2, electron1.parentAtom);
@@ -264,9 +243,9 @@ function prepareAtom(atom, elapsedTime) {
   for (let i = 0; i < atom.bonds.length; i++) {
     let bond = atom.bonds[i];
 
-    if (bond.type === "double") continue;
+    if (bond.type === 'double') continue;
 
-    if (bond.type === "bond") {
+    if (bond.type === 'bond') {
       atom.bonds[i] = bond.parentElectron;
       bond = bond.parentElectron;
     }
@@ -274,6 +253,23 @@ function prepareAtom(atom, elapsedTime) {
     bond.bondTimer -= elapsedTime;
     bond.charge = 1;
   }
+}
+
+function getClosestElectron(metalElectron, nonmetal) {
+  let smallestDist = Infinity;
+  let closestElectron;
+
+  for (const nonmetalElectron of nonmetal.bonds) {
+    if (nonmetalElectron.type != 'single') continue;
+
+    const dist = calcDist(metalElectron, nonmetalElectron);
+    if (dist < smallestDist) {
+      closestElectron = nonmetalElectron;
+      smallestDist = dist;
+    }
+  }
+
+  return { metal: metalElectron, nonmetal: closestElectron, dist: smallestDist };
 }
 
 export { calcForces };

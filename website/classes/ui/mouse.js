@@ -3,8 +3,12 @@ class Mouse {
     this.x = 0;
     this.y = 0;
     this.state = 'up';
-    window.addEventListener('mousemove', this.update);
     this.cursor = cursor;
+  }
+
+  getGlobalPos() {
+    const rect = canvas.getBoundingClientRect();
+    return { x: rect.left + this.x, y: rect.top + this.y };
   }
 
   update(event) {

@@ -81,11 +81,13 @@ class Electron {
 
   finishTransfer() {
     if (this.target) {
-      this.parentAtom.removeElectron(this);
+      this.parentAtom.transferElectrons.length = 0;
     } else {
       this.type = 'double';
+      this.charge = 2;
       this.angleOffset = 0;
       this.doubleSign = null;
+      this.parentAtom.addCharge(-1);
     }
   }
 
@@ -116,6 +118,7 @@ class Electron {
   update(elapsedTime) {
     if (this.transferTimer < 0) {
       this.finishTransfer();
+      this.transferTimer = 0;
     }
 
     if (this.target) {
@@ -127,7 +130,6 @@ class Electron {
 
     if (this.transferTimer > 0) {
       this.transferTimer -= elapsedTime;
-      return;
     }
 
     this.angle += this.angularVelocity * elapsedTime;

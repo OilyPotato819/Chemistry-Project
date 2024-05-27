@@ -22,6 +22,7 @@ class Atom {
     //atom radius = covalent radius
     this.r = this.covalentRadius;
 
+    this.transferElectrons = [];
     this.bonds = [];
     this.previousBonds = [];
 
@@ -92,6 +93,10 @@ class Atom {
 
     metalElectron.donorTransfer(nonmetalElectron, donorSign);
     nonmetalElectron.acceptorTransfer(acceptorSign);
+
+    this.addCharge(1);
+    this.transferElectrons.push(metalElectron);
+    this.removeElectron(metalElectron);
   }
 
   removeElectron(electron) {
@@ -175,6 +180,10 @@ class Atom {
 
     for (const bond of this.bonds) {
       bond.update(elapsedTime);
+    }
+
+    for (const electron of this.transferElectrons) {
+      electron.update(elapsedTime);
     }
   }
 

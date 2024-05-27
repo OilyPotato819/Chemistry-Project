@@ -122,6 +122,9 @@ class Simulation {
       for (const bond of atom.bonds) {
         bond.draw(this.ctx, this.scale);
       }
+      for (const electron of atom.transferElectrons) {
+        electron.draw(this.ctx, this.scale);
+      }
     }
 
     if (this.mouse.state === 'click') this.mouse.state = 'down';

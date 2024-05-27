@@ -45,12 +45,12 @@ function calcForces(simulation) {
       if (isIonicPair && highDifference && atomDist < ionicMaxBondLength && atom1.charge === 0 && atom2.charge === 0) {
         const metal = atom1.nonmetal ? atom2 : atom1;
         const nonmetal = atom1.nonmetal ? atom1 : atom2;
-        const electron1 = closestElectronPair.electron1;
-        const electron2 = closestElectronPair.electron2;
-        const metalElectron = electron1.parentAtom.nonmetal ? electron2 : electron1;
-        const nonmetalElectron = electron1.parentAtom.nonmetal ? electron1 : electron2;
+        // const electron1 = closestElectronPair.electron1;
+        // const electron2 = closestElectronPair.electron2;
+        // const metalElectron = electron1.parentAtom.nonmetal ? electron2 : electron1;
+        // const nonmetalElectron = electron1.parentAtom.nonmetal ? electron1 : electron2;
 
-        attractElectrons(electron1, electron2, forces, elapsedTime);
+        // attractElectrons(electron1, electron2, forces, elapsedTime);
 
         const maxTransferred = Math.min(metal.valency - metal.charge, nonmetal.valency + nonmetal.charge);
         const metalKineticEnergy = forces.kineticEnergy(metal);
@@ -67,18 +67,19 @@ function calcForces(simulation) {
 
         electronPairs.sort((a, b) => a.dist - b.dist);
 
+        let ionizationEnergy = 0;
         for (const electronPair of electronPairs) {
-          const potentialDist = calcDist(electronPair.metalElectron, electronPair.nonmetal);
+          const potentialDist = calcDist(electronPair.metal, electronPair.nonmetal);
           const electricPotential = forces.electricPotential(potentialDist);
 
-          const ionizationEnergy = metal.ionizationEnergies[transferPairs.length];
+          ionizationEnergy += metal.ionizationEnergies[transferPairs.length];
           if (electricPotential + metalKineticEnergy < ionizationEnergy) break;
           transferPairs.push(electronPair);
+
+          if (transferPairs.length === maxTransferred) break;
         }
 
         for (const transferPair of transferPairs) {
-          metal.addCharge(1);
-          nonmetal.addCharge(-1);
           atom1.transferElectron(transferPair.metal, transferPair.nonmetal);
         }
       }

@@ -16,7 +16,7 @@ function findBonds(atom) {
   for (let i = 0; i < atom.bonds.length; i++) {
     allBonds[allBonds.length - 1].push(atom.symbol);
     atom.checked = true;
-    if (atom.bonds[i].type === "bond") {
+    if (atom.bonds[i].type === 'bond') {
       if (!atom.bonds[i].bondedAtom.checked) {
         findBonds(atom.bonds[i].bondedAtom);
       }

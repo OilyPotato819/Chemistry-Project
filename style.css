@@ -6,54 +6,87 @@
 
 body,
 html {
+  overflow: hidden;
   background-color: #313338;
   font-family: sans-serif;
-  text-align: center;
   height: 100%;
   width: 100%;
+  text-align: center;
 }
 
-#sidebar {
+.sidebar {
   -webkit-user-select: none; /* Safari */
   -ms-user-select: none; /* IE 10 and IE 11 */
   user-select: none; /* Standard syntax */
   background-color: rgb(175, 175, 175);
-  float: right;
-  width: 35%;
   height: 100%;
   padding-top: 50px;
 }
 
-#periodic_table > div {
-  margin-bottom: 3%;
+#sidebar-l {
+  float: left;
 }
 
-#periodic_table > div > div {
-  width: 5.5%;
-  display: inline-block;
-  margin-right: -7px;
+#sidebar-r {
+  float: right;
 }
 
-#periodic_table > div > div > div {
+.show {
   border: 3px solid black;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
-  text-align: center;
-  /* background: red; */
-  margin-top: -3px;
-  padding: 20% 0;
 }
 
-canvas {
-  float:left;
-  /* width:65vh;
-  height:100vh; */
+.column-gap {
+  width: 3%;
+}
+
+.row-gap {
+  height: 6%;
+}
+
+#periodic_table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin: auto;
+  width: 90%;
+  height: 35%;
 }
 
 .circle {
   border: 1px solid black;
   border-radius: 65%;
   position: absolute;
-  visibility:hidden
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  visibility: hidden;
+}
+
+#toggle-l {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 30px;
+  height: 30px;
+}
+
+#toggle-r {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+}
+
+button {
+  padding: 10px 10px 10px 10px;
+  border-radius: 5px;
+  margin-top: 20px;
+}
+
+#canvas {
+  margin: 5px;
+}
+
+.collapsed {
+  display: none;
 }

@@ -13,6 +13,7 @@ class Electron {
     this.angularVelocity = 0;
     this.type = charge === 1 ? 'single' : 'double';
 
+    this.doubleSign = null;
     this.target = null;
     this.transferTime = 5;
     this.transferTimer = 0;
@@ -55,23 +56,26 @@ class Electron {
     this.angularVelocity += angularAcceleration * elapsedTime;
   }
 
-  prepareForTransfer(target) {
-    if (target) {
-      this.target = target;
-      this.transferSpeeds.pos = 1 / this.transferTime;
+  donorTransfer(target, sign) {
+    this.target = target;
+    this.doubleSign = sign;
+    this.transferSpeeds.pos = 1 / this.transferTime;
 
-      const targetColor = getRGB(target.color);
-      const currentColor = getRGB(this.color);
+    const targetColor = getRGB(target.color);
+    const currentColor = getRGB(this.color);
 
-      const redSpeed = (targetColor[0] - currentColor[0]) / this.transferTime;
-      const greenSpeed = (targetColor[1] - currentColor[1]) / this.transferTime;
-      const blueSpeed = (targetColor[2] - currentColor[2]) / this.transferTime;
+    const redSpeed = (targetColor[0] - currentColor[0]) / this.transferTime;
+    const greenSpeed = (targetColor[1] - currentColor[1]) / this.transferTime;
+    const blueSpeed = (targetColor[2] - currentColor[2]) / this.transferTime;
 
-      this.transferSpeeds.rgb = [redSpeed, greenSpeed, blueSpeed];
-    } else {
-      this.transferSpeeds.angle = this.doubleAngleDiff / this.transferTime;
-    }
+    this.transferSpeeds.rgb = [redSpeed, greenSpeed, blueSpeed];
 
+    this.transferTimer = this.transferTime;
+  }
+
+  acceptorTransfer(sign) {
+    this.doubleSign = sign;
+    this.transferSpeeds.angle = this.doubleAngleDiff / this.transferTime;
     this.transferTimer = this.transferTime;
   }
 
@@ -81,11 +85,12 @@ class Electron {
     } else {
       this.type = 'double';
       this.angleOffset = 0;
+      this.doubleSign = null;
     }
   }
 
   moveToTarget() {
-    const targetPos = this.target.calcDoublePos(-1);
+    const targetPos = this.target.calcDoublePos(this.doubleSign);
     const dx = targetPos.x - this.x;
     const dy = targetPos.y - this.y;
 
@@ -140,7 +145,7 @@ class Electron {
       ctx.arc(x * scale, y * scale, this.r, 0, Math.PI * 2);
       ctx.fill();
     } else if (this.angleOffset) {
-      const pos = this.calcPosition(this.angle + this.angleOffset);
+      const pos = this.calcPosition(this.angle + this.doubleSign * this.angleOffset);
 
       ctx.fillStyle = this.color;
       ctx.beginPath();

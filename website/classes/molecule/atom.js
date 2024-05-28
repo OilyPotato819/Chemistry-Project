@@ -1,7 +1,7 @@
-import { elementData } from '../../data/element-data.js';
-import { Bond } from './bond.js';
-import { Electron } from './electron.js';
-import { changeShade, decomposeForce, calcDist, getIonText } from '../../functions/utils.js';
+import { elementData } from "../../data/element-data.js";
+import { Bond } from "./bond.js";
+import { Electron } from "./electron.js";
+import { changeShade, decomposeForce, calcDist, getIonText } from "../../functions/utils.js";
 class Atom {
   constructor(x, y, speed, symbol, simulation, clicked) {
     this.x = x;
@@ -17,7 +17,12 @@ class Atom {
     // valency = number of lone electrons that are free to bond
     // lonepairs = electron pairs that won't bond
     Object.assign(this, elementData.get(symbol));
-    this.ionizationEnergies = [this.firstIonization, this.secondIonization, this.thirdIonization, this.fourthIonization].filter((x) => x != 0);
+    this.ionizationEnergies = [
+      this.firstIonization,
+      this.secondIonization,
+      this.thirdIonization,
+      this.fourthIonization,
+    ].filter((x) => x != 0);
 
     //atom radius = covalent radius
     this.r = this.covalentRadius;
@@ -67,7 +72,12 @@ class Atom {
     const dist = Math.sqrt(x ** 2 + y ** 2);
     const forceAngle = Math.atan2(y, x);
     // get coulomb force between electrons
-    const force = this.forces.electrostatic(electron1.charge, electron2.charge, dist, this.forces.repulsionCoulomb);
+    const force = this.forces.electrostatic(
+      electron1.charge,
+      electron2.charge,
+      dist,
+      this.forces.repulsionCoulomb
+    );
     // electrons 1 and 2 have reflected angles
     electron1.applyTorque(force, forceAngle, elapsedTime);
     electron2.applyTorque(force, forceAngle + Math.PI, elapsedTime);
@@ -95,6 +105,7 @@ class Atom {
     nonmetalElectron.acceptorTransfer(acceptorSign);
 
     this.addCharge(1);
+    nonmetalElectron.parentAtom.addCharge(-1);
     this.transferElectrons.push(metalElectron);
     this.removeElectron(metalElectron);
   }
@@ -110,7 +121,10 @@ class Atom {
     this.x = this.mouse.x / this.simulationScale;
     this.y = this.mouse.y / this.simulationScale;
     let hidden = false;
-    if (this.mouse.x > canvas.width - this.simulationScale * this.r || this.mouse.x < this.simulationScale * this.r) {
+    if (
+      this.mouse.x > canvas.width - this.simulationScale * this.r ||
+      this.mouse.x < this.simulationScale * this.r
+    ) {
       hidden = true;
 
       const mousePos = this.mouse.getGlobalPos();
@@ -118,11 +132,11 @@ class Atom {
       this.mouse.cursor.style.top = `${mousePos.y - this.simulationScale * this.r}px`;
       this.mouse.cursor.style.width = `${this.r}px`;
       this.mouse.cursor.style.height = `${this.r}px`;
-      this.mouse.cursor.style.visibility = 'visible';
+      this.mouse.cursor.style.visibility = "visible";
     } else {
-      this.mouse.cursor.style.visibility = 'hidden';
+      this.mouse.cursor.style.visibility = "hidden";
     }
-    if (this.mouse.state === 'up') {
+    if (this.mouse.state === "up") {
       if (!hidden) {
         this.clicked = false;
         this.vx = 0;
@@ -130,7 +144,7 @@ class Atom {
       } else {
         this.destroy();
       }
-      this.mouse.cursor.style.visibility = 'hidden';
+      this.mouse.cursor.style.visibility = "hidden";
     }
   }
 
@@ -199,9 +213,9 @@ class Atom {
     ctx.arc(this.x * scale, this.y * scale, this.r * scale, 0, Math.PI * 2);
     ctx.stroke();
 
-    ctx.fillStyle = 'white';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
     ctx.font = this.font;
     ctx.fillText(this.text, this.x * scale, this.y * scale);
   }

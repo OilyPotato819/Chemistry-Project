@@ -90,3 +90,16 @@ button {
 .collapsed {
   display: none;
 }
+
+ul {
+  background: white;
+  width: 80%;
+  margin: auto
+}
+
+li {
+  border: 1px solid black;
+  height: 30px;
+  list-style-type: none;
+  padding-top: 5px;
+}

@@ -1,4 +1,4 @@
-import { changeShade, getRGB } from '../../functions/utils.js';
+import { changeShade, getRGB } from "../../functions/utils.js";
 
 class Electron {
   constructor(parentAtom, angle, charge, index, parentColor, simulation) {
@@ -11,7 +11,7 @@ class Electron {
 
     this.updatePosition(this.angle);
     this.angularVelocity = 0;
-    this.type = charge === 1 ? 'single' : 'double';
+    this.type = charge === 1 ? "single" : "double";
 
     this.doubleSign = null;
     this.target = null;
@@ -83,11 +83,10 @@ class Electron {
     if (this.target) {
       this.parentAtom.transferElectrons.length = 0;
     } else {
-      this.type = 'double';
+      this.type = "double";
       this.charge = 2;
       this.angleOffset = 0;
       this.doubleSign = null;
-      this.parentAtom.addCharge(-1);
     }
   }
 
@@ -153,12 +152,12 @@ class Electron {
       ctx.beginPath();
       ctx.arc(pos.x * scale, pos.y * scale, this.r, 0, Math.PI * 2);
       ctx.fill();
-    } else if (this.type === 'single') {
+    } else if (this.type === "single") {
       ctx.fillStyle = this.color;
       ctx.beginPath();
       ctx.arc(this.x * scale, this.y * scale, this.r, 0, Math.PI * 2);
       ctx.fill();
-    } else if (this.type === 'double') {
+    } else if (this.type === "double") {
       const pos1 = this.calcDoublePos(1);
       const pos2 = this.calcDoublePos(-1);
 

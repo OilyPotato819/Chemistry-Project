@@ -7,10 +7,6 @@ class Bond {
     this.type = 'bond';
   }
 
-  getMirrorBond() {
-    return this.bondedAtom.bonds[this.bondedElectron.index];
-  }
-
   update(elapsedTime) {
     this.parentElectron.update(elapsedTime);
   }

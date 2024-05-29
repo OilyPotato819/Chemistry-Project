@@ -1,7 +1,7 @@
-import { elementData } from "../../data/element-data.js";
-import { Bond } from "./bond.js";
-import { Electron } from "./electron.js";
-import { changeShade, decomposeForce, calcDist, getIonText } from "../../functions/utils.js";
+import { elementData } from '../../data/element-data.js';
+import { Bond } from './bond.js';
+import { Electron } from './electron.js';
+import { changeShade, decomposeForce, calcDist, getIonText } from '../../functions/utils.js';
 class Atom {
   constructor(x, y, speed, symbol, simulation, clicked) {
     this.x = x;
@@ -11,24 +11,21 @@ class Atom {
     this.vx = Math.random() * speed * 2 - speed;
     this.vy = Math.random() * speed * 2 - speed;
 
-    this.mouse = simulation.mouse;
     this.leftOffset = simulation.leftSidebar.width;
     //copies properties from element data (covalentRadius, electronegativity ...) into Atom object
     // valency = number of lone electrons that are free to bond
     // lonepairs = electron pairs that won't bond
     Object.assign(this, elementData.get(symbol));
-    this.ionizationEnergies = [
-      this.firstIonization,
-      this.secondIonization,
-      this.thirdIonization,
-      this.fourthIonization,
-    ].filter((x) => x != 0);
+    const lonePairNum = this.lonePairs;
+    this.ionizationEnergies = [this.firstIonization, this.secondIonization, this.thirdIonization, this.fourthIonization].filter((x) => x != 0);
 
     //atom radius = covalent radius
     this.r = this.covalentRadius;
 
     this.transferElectrons = [];
-    this.bonds = [];
+    this.covalentBonds = [];
+    this.unpairedElectrons = [];
+    this.lonePairs = [];
     this.previousBonds = [];
 
     this.friction = simulation.atomFriction;
@@ -36,6 +33,9 @@ class Atom {
     this.container = simulation.container;
     this.simulationScale = simulation.scale;
     this.atoms = simulation.atoms;
+    this.mouse = simulation.mouse;
+    this.keyboard = simulation.keyboard;
+    this.electronRotation = simulation.electronRotation;
 
     this.checked = false;
     this.font = `${this.r * simulation.scale * 0.7}px sans-serif`;
@@ -43,13 +43,21 @@ class Atom {
     this.borderColor = changeShade(this.color, 10);
     this.charge = 0;
 
-    const bondNum = this.valency + this.lonePairs;
+    this.createElectrons(lonePairNum, simulation);
+  }
+
+  createElectrons(lonePairNum, simulation) {
+    const bondNum = this.valency + lonePairNum;
     for (let i = 0; i < bondNum; i++) {
       const angle = i * ((2 * Math.PI) / bondNum);
       // charge for lone pair is 2, charge for free electron is 1
-      const charge = i < this.lonePairs ? 2 : 1;
+      const charge = i < lonePairNum ? 2 : 1;
       // pushes electrons to bond array
-      this.bonds.push(new Electron(this, angle, charge, i, this.color, simulation));
+      if (charge === 1) {
+        this.unpairedElectrons.push(new Electron(this, angle, charge, this.color, simulation));
+      } else if (charge === 2) {
+        this.lonePairs.push(new Electron(this, angle, charge, this.color, simulation));
+      }
     }
   }
 
@@ -72,23 +80,24 @@ class Atom {
     const dist = Math.sqrt(x ** 2 + y ** 2);
     const forceAngle = Math.atan2(y, x);
     // get coulomb force between electrons
-    const force = this.forces.electrostatic(
-      electron1.charge,
-      electron2.charge,
-      dist,
-      this.forces.repulsionCoulomb
-    );
+    const force = this.forces.electrostatic(electron1.charge, electron2.charge, dist, this.forces.repulsionCoulomb);
     // electrons 1 and 2 have reflected angles
     electron1.applyTorque(force, forceAngle, elapsedTime);
     electron2.applyTorque(force, forceAngle + Math.PI, elapsedTime);
   }
 
   createBond(parentElectron, bondedAtom, bondedElectron) {
-    this.bonds[parentElectron.index] = new Bond(this, bondedAtom, parentElectron, bondedElectron);
+    const bond = new Bond(this, bondedAtom, parentElectron, bondedElectron);
+    this.covalentBonds.push(bond);
+    parentElectron.bond = bond;
+    this.removeElement(parentElectron, this.unpairedElectrons);
+    return bond;
   }
 
   breakBond(bond) {
-    this.bonds[bond.parentElectron.index] = bond.parentElectron;
+    this.removeElement(bond, this.covalentBonds);
+    this.unpairedElectrons.push(bond.parentElectron);
+    bond.parentElectron.bond = null;
   }
 
   canCovalent() {
@@ -107,24 +116,29 @@ class Atom {
     this.addCharge(1);
     nonmetalElectron.parentAtom.addCharge(-1);
     this.transferElectrons.push(metalElectron);
-    this.removeElectron(metalElectron);
+    this.removeElement(metalElectron, this.unpairedElectrons);
   }
 
-  removeElectron(electron) {
-    this.bonds.splice(electron.index, 1);
-    for (let i = 0; i < this.bonds.length; i++) {
-      this.bonds[i].index = i;
-    }
+  removeElement(element, array) {
+    array.splice(array.indexOf(element), 1);
   }
 
   dragUpdate() {
     this.x = this.mouse.x / this.simulationScale;
     this.y = this.mouse.y / this.simulationScale;
+    this.vx = this.mouse.vx;
+    this.vy = this.mouse.vy;
+
+    if (this.keyboard.left) {
+      this.changeElectronSpeed(-this.electronRotation);
+    } else if (this.keyboard.right) {
+      this.changeElectronSpeed(this.electronRotation);
+    } else {
+      this.changeElectronSpeed(0);
+    }
+
     let hidden = false;
-    if (
-      this.mouse.x > canvas.width - this.simulationScale * this.r ||
-      this.mouse.x < this.simulationScale * this.r
-    ) {
+    if (this.mouse.x > canvas.width - this.simulationScale * this.r || this.mouse.x < this.simulationScale * this.r) {
       hidden = true;
 
       const mousePos = this.mouse.getGlobalPos();
@@ -132,20 +146,33 @@ class Atom {
       this.mouse.cursor.style.top = `${mousePos.y - this.simulationScale * this.r}px`;
       this.mouse.cursor.style.width = `${this.r}px`;
       this.mouse.cursor.style.height = `${this.r}px`;
-      this.mouse.cursor.style.visibility = "visible";
+      this.mouse.cursor.style.visibility = 'visible';
     } else {
-      this.mouse.cursor.style.visibility = "hidden";
+      this.mouse.cursor.style.visibility = 'hidden';
     }
-    if (this.mouse.state === "up") {
+
+    if (this.mouse.leftState === 'up') {
       if (!hidden) {
         this.clicked = false;
-        this.vx = 0;
-        this.vy = 0;
       } else {
         this.destroy();
       }
-      this.mouse.cursor.style.visibility = "hidden";
+      this.mouse.cursor.style.visibility = 'hidden';
+
+      this.changeElectronSpeed(0);
     }
+  }
+
+  changeElectronSpeed(speed) {
+    const electrons = this.getAllElectrons();
+    for (const electron of electrons) {
+      electron.angularVelocity = speed;
+    }
+  }
+
+  getAllElectrons() {
+    const bondElectrons = this.covalentBonds.map((bond) => bond.parentElectron);
+    return this.unpairedElectrons.concat(this.lonePairs, bondElectrons);
   }
 
   containerCollision() {
@@ -178,10 +205,11 @@ class Atom {
     this.vx *= this.friction;
     this.vy *= this.friction;
 
-    for (let i = 0; i < this.bonds.length - 1; i++) {
-      for (let j = i + 1; j < this.bonds.length; j++) {
-        const electron1 = this.bonds[i].parentElectron || this.bonds[i];
-        const electron2 = this.bonds[j].parentElectron || this.bonds[j];
+    const electrons = this.getAllElectrons();
+    for (let i = 0; i < electrons.length - 1; i++) {
+      for (let j = i + 1; j < electrons.length; j++) {
+        const electron1 = electrons[i].parentElectron || electrons[i];
+        const electron2 = electrons[j].parentElectron || electrons[j];
         this.repulseElectrons(electron1, electron2, elapsedTime);
       }
     }
@@ -192,10 +220,15 @@ class Atom {
       this.containerCollision();
     }
 
-    for (const bond of this.bonds) {
+    for (const bond of this.covalentBonds) {
       bond.update(elapsedTime);
     }
-
+    for (const electron of this.unpairedElectrons) {
+      electron.update(elapsedTime);
+    }
+    for (const lonePair of this.lonePairs) {
+      lonePair.update(elapsedTime);
+    }
     for (const electron of this.transferElectrons) {
       electron.update(elapsedTime);
     }
@@ -213,9 +246,9 @@ class Atom {
     ctx.arc(this.x * scale, this.y * scale, this.r * scale, 0, Math.PI * 2);
     ctx.stroke();
 
-    ctx.fillStyle = "white";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     ctx.font = this.font;
     ctx.fillText(this.text, this.x * scale, this.y * scale);
   }

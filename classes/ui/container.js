@@ -46,7 +46,7 @@ class Container {
       if (dist > this.clickDist) continue;
 
       inRange.push(side);
-      if (this.mouse.state === 'click') {
+      if (this.mouse.leftState === 'click') {
         this.drag[axis] = side;
       }
     }
@@ -68,7 +68,7 @@ class Container {
       canvas.style.cursor = 'nesw-resize';
     }
 
-    if (this.mouse.state === 'up') {
+    if (this.mouse.leftState === 'up') {
       this.velocity = { left: 0, right: 0, top: 0, bottom: 0 };
       this.drag = { x: null, y: null };
       return;

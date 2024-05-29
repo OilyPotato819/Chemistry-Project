@@ -1,11 +1,11 @@
-import { Atom } from "./molecule/atom.js";
-import { Forces } from "./forces.js";
-import { Collision } from "./collision.js";
-import { calcForces } from "../functions/calc-forces.js";
-import { getFormulas } from "../functions/get-formulas.js";
+import { Atom } from './molecule/atom.js';
+import { Forces } from './forces.js';
+import { Collision } from './collision.js';
+import { calcForces } from '../functions/calc-forces.js';
+import { getFormulas } from '../functions/get-formulas.js';
 
 class Simulation {
-  constructor(simParams, forceParams, mouse, container, leftSidebar, rightSidebar) {
+  constructor(simParams, forceParams, mouse, keyboard, container, leftSidebar, rightSidebar) {
     Object.assign(this, simParams);
     delete this.cor;
 
@@ -15,11 +15,12 @@ class Simulation {
     this.forces = new Forces(forceParams);
     this.collision = new Collision(simParams.cor);
 
+    this.keyboard = keyboard;
     this.mouse = mouse;
     this.container = container;
 
     this.atoms = [];
-    this.ctx = canvas.getContext("2d");
+    this.ctx = canvas.getContext('2d');
     this.lastTime = 0;
     this.elapsedTime = 0;
     this.pause = false;
@@ -31,25 +32,25 @@ class Simulation {
 
     this.createEventListeners();
 
-    this.pauseButton = document.getElementById("pause");
-    this.pauseButton.addEventListener("click", () => {
-      if (this.pauseButton.innerHTML === "pause") {
+    this.pauseButton = document.getElementById('pause');
+    this.pauseButton.addEventListener('click', () => {
+      if (this.pauseButton.innerHTML === 'pause') {
         this.pause = true;
-        this.pauseButton.innerHTML = "play";
+        this.pauseButton.innerHTML = 'play';
       } else {
         this.pause = false;
-        this.pauseButton.innerHTML = "pause";
+        this.pauseButton.innerHTML = 'pause';
       }
     });
 
-    this.linesButton = document.getElementById("lines");
-    this.linesButton.addEventListener("click", () => {
-      if (this.linesButton.innerHTML === "hide bond lines") {
+    this.linesButton = document.getElementById('lines');
+    this.linesButton.addEventListener('click', () => {
+      if (this.linesButton.innerHTML === 'hide bond lines') {
         this.lines = false;
-        this.linesButton.innerHTML = "see bond lines";
+        this.linesButton.innerHTML = 'see bond lines';
       } else {
         this.lines = true;
-        this.linesButton.innerHTML = "hide bond lines";
+        this.linesButton.innerHTML = 'hide bond lines';
       }
     });
   }
@@ -73,32 +74,47 @@ class Simulation {
   }
 
   createEventListeners() {
-    document.addEventListener("mousemove", (event) => {
-      this.mouse.update(event);
+    document.addEventListener('mousemove', (event) => {
+      this.mouse.updatePos(event);
     });
 
-    document.addEventListener("mousedown", () => {
-      this.mouse.state = "click";
+    document.addEventListener('mousedown', (event) => {
+      this.mouse.mousedown(event);
     });
 
-    document.addEventListener("mouseup", () => {
-      this.mouse.state = "up";
+    document.addEventListener('mouseup', (event) => {
+      this.mouse.mouseup(event);
     });
 
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden") {
+    document.addEventListener('keydown', (event) => {
+      this.keyboard.keydown(event);
+    });
+
+    document.addEventListener('keyup', (event) => {
+      this.keyboard.keyup(event);
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
         this.lastTime = 0;
       }
+    });
+
+    canvas.addEventListener('contextmenu', function (event) {
+      event.preventDefault();
     });
   }
 
   update() {
     this.container.update(this.scale);
+    this.mouse.updateSpeed(this.elapsedTime);
 
     if (this.atoms.length) calcForces(this);
     for (const atom of this.atoms) {
       atom.update(this.elapsedTime);
     }
+
+    this.mouse.updateState();
   }
 
   draw() {
@@ -111,23 +127,25 @@ class Simulation {
     }
 
     for (const atom of this.atoms) {
-      for (const bond of atom.bonds) {
-        if (this.lines) {
-          if (bond.drawConnection) bond.drawConnection(this.ctx, this.scale);
-        }
+      for (const bond of atom.covalentBonds) {
+        if (this.lines) bond.drawConnection(this.ctx, this.scale);
       }
     }
 
     for (const atom of this.atoms) {
-      for (const bond of atom.bonds) {
+      for (const bond of atom.covalentBonds) {
         bond.draw(this.ctx, this.scale);
+      }
+      for (const electron of atom.unpairedElectrons) {
+        electron.draw(this.ctx, this.scale);
+      }
+      for (const lonePair of atom.lonePairs) {
+        lonePair.draw(this.ctx, this.scale);
       }
       for (const electron of atom.transferElectrons) {
         electron.draw(this.ctx, this.scale);
       }
     }
-
-    if (this.mouse.state === "click") this.mouse.state = "down";
   }
 
   loop(currentTime) {
